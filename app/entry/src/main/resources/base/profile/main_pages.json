@@ -1,0 +1,11 @@
+{
+  "src": [
+    "pages/Index",
+    "pages/Card",
+    "pages/Login",
+    "pages/Register",
+    "pages/Profile",
+    "pages/Home",
+    "pages/Chat"
+  ]
+}
