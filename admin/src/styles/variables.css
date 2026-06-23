@@ -1,0 +1,199 @@
+/* ==========================================
+   AI伴学管理后台 - 设计系统令牌
+   基于 Indigo 主色 + Teal 辅色
+   ========================================== */
+
+:root {
+  /* ===== 主色调 ===== */
+  --color-primary: #6366F1;
+  --color-primary-light: #818CF8;
+  --color-primary-lighter: #A5B4FC;
+  --color-primary-dark: #4F46E5;
+  --color-primary-bg: rgba(99, 102, 241, 0.08);
+
+  /* ===== 辅色 ===== */
+  --color-accent: #14B8A6;
+  --color-accent-light: #5EEAD4;
+  --color-accent-bg: rgba(20, 184, 166, 0.08);
+
+  /* ===== 中性色 ===== */
+  --color-bg: #F8FAFC;
+  --color-bg-alt: #F1F5F9;
+  --color-surface: #FFFFFF;
+  --color-border: #E2E8F0;
+  --color-border-light: #F1F5F9;
+
+  /* ===== 文字色 ===== */
+  --color-text-primary: #1E293B;
+  --color-text-secondary: #64748B;
+  --color-text-tertiary: #94A3B8;
+  --color-text-inverse: #FFFFFF;
+
+  /* ===== 语义色 ===== */
+  --color-success: #10B981;
+  --color-success-bg: rgba(16, 185, 129, 0.08);
+  --color-warning: #F59E0B;
+  --color-warning-bg: rgba(245, 158, 11, 0.08);
+  --color-danger: #EF4444;
+  --color-danger-bg: rgba(239, 68, 68, 0.08);
+  --color-info: #6366F1;
+
+  /* ===== 侧栏 ===== */
+  --sidebar-bg: #0F172A;
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 64px;
+  --sidebar-text: rgba(255, 255, 255, 0.65);
+  --sidebar-text-active: #FFFFFF;
+  --sidebar-hover-bg: rgba(99, 102, 241, 0.1);
+  --sidebar-active-bg: rgba(99, 102, 241, 0.18);
+  --sidebar-active-border: var(--color-primary);
+  --sidebar-divider: rgba(255, 255, 255, 0.06);
+
+  /* ===== 间距 ===== */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+
+  /* ===== 圆角 ===== */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* ===== 阴影 ===== */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 30px rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 20px 60px rgba(0, 0, 0, 0.12);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
+
+  /* ===== 过渡 ===== */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.25s ease;
+  --transition-slow: 0.35s ease;
+
+  /* ===== 字号 ===== */
+  --font-xs: 12px;
+  --font-sm: 13px;
+  --font-base: 14px;
+  --font-md: 15px;
+  --font-lg: 16px;
+  --font-xl: 18px;
+  --font-2xl: 20px;
+  --font-3xl: 24px;
+  --font-4xl: 30px;
+}
+
+/* ==========================================
+   Element Plus 主题覆盖
+   ========================================== */
+:root {
+  --el-color-primary: var(--color-primary);
+  --el-color-primary-light-3: var(--color-primary-light);
+  --el-color-primary-dark-2: var(--color-primary-dark);
+  --el-color-success: var(--color-success);
+  --el-color-warning: var(--color-warning);
+  --el-color-danger: var(--color-danger);
+  --el-color-info: var(--color-info);
+  --el-border-radius-base: var(--radius-sm);
+  --el-font-size-base: var(--font-base);
+  --el-bg-color: var(--color-bg);
+  --el-bg-color-overlay: var(--color-surface);
+  --el-border-color: var(--color-border);
+  --el-border-color-light: var(--color-border-light);
+  --el-text-color-primary: var(--color-text-primary);
+  --el-text-color-regular: var(--color-text-secondary);
+  --el-text-color-placeholder: var(--color-text-tertiary);
+  --el-box-shadow-light: var(--shadow-sm);
+  --el-box-shadow: var(--shadow-md);
+  --el-box-shadow-dark: var(--shadow-lg);
+  --el-fill-color: var(--color-bg-alt);
+  --el-fill-color-light: var(--color-bg);
+  --el-fill-color-lighter: var(--color-surface);
+  --el-disabled-bg-color: var(--color-bg-alt);
+}
+
+/* ===== Element Plus 组件微调 ===== */
+
+/* 卡片 */
+.el-card {
+  --el-card-padding: 20px;
+  border: 1px solid var(--color-border-light) !important;
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
+}
+
+.el-card:hover {
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* 输入框 */
+.el-input__wrapper {
+  box-shadow: 0 0 0 1px var(--color-border) inset !important;
+  transition: box-shadow var(--transition-fast) !important;
+}
+
+.el-input__wrapper:hover {
+  box-shadow: 0 0 0 1px var(--color-primary-light) inset !important;
+}
+
+.el-input__wrapper.is-focus {
+  box-shadow: 0 0 0 1px var(--color-primary) inset !important;
+}
+
+/* 表格 */
+.el-table th.el-table__cell {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  background: var(--color-bg);
+}
+
+.el-table__body tr:hover > td {
+  background: var(--color-primary-bg) !important;
+}
+
+/* 按钮 */
+.el-button {
+  transition: all var(--transition-fast);
+}
+
+.el-button--primary {
+  --el-button-bg-color: var(--color-primary);
+  --el-button-border-color: var(--color-primary);
+  --el-button-hover-bg-color: var(--color-primary-dark);
+  --el-button-hover-border-color: var(--color-primary-dark);
+}
+
+/* 分页 */
+.el-pagination {
+  --el-pagination-button-bg-color: transparent;
+}
+
+/* 对话框 */
+.el-dialog {
+  --el-dialog-border-radius: var(--radius-lg);
+}
+
+/* 标签 */
+.el-tag {
+  --el-tag-border-radius: var(--radius-sm);
+}
+
+/* 树组件 */
+.el-tree {
+  --el-tree-node-hover-bg-color: var(--color-bg-alt);
+  --el-tree-node-content-height: 40px;
+}
+
+/* 开关 */
+.el-switch {
+  --el-switch-on-color: var(--color-primary);
+}
+
+/* 进度条 */
+.el-progress-bar__inner {
+  transition: width var(--transition-slow);
+}

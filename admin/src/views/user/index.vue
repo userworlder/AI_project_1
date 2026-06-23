@@ -5,51 +5,38 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { getUserList, createUser, updateUser, deleteUser } from '@/api/user'
 
 // ========== 状态定义 ==========
-// 用户列表数据
 const tableData = ref([])
-
-// 列表加载状态
 const loading = ref(false)
-
-// 搜索关键词
 const searchQuery = ref('')
 
-// 分页配置
 const pagination = ref({
   currentPage: 1,
   pageSize: 10,
   total: 0
 })
 
-// ========== 弹窗与表单状态 ==========
-// 弹窗显示状态
 const showModal = ref(false)
-
-// 表单引用（用于触发表单验证）
 const formRef = ref(null)
-
-// 弹窗标题
 const title = ref('新增用户')
-
-// 编辑模式下的用户 ID
 const editingId = ref(null)
 
-// 表单数据
 const form = ref({
   username: '',
   nickname: '',
   email: '',
+  password: '',
   role: 'student'
 })
 
-// 提交按钮加载状态
 const submitLoading = ref(false)
 
-// ========== 表单校验规则 ==========
 const rules = {
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
     { min: 2, max: 20, message: '用户名为 2-20 个字符', trigger: 'blur' }
+  ],
+  password: [
+    { min: 6, max: 30, message: '密码为 6-30 个字符', trigger: 'blur' }
   ],
   nickname: [
     { required: true, message: '请输入昵称', trigger: 'blur' },
@@ -64,33 +51,27 @@ const rules = {
   ]
 }
 
-// ========== 角色选项 ==========
 const roleOptions = [
   { label: '管理员', value: 'admin' },
   { label: '教师', value: 'teacher' },
   { label: '学生', value: 'student' }
 ]
 
-// ========== 表格列配置 ==========
 const tableColumns = [
   { prop: 'username', label: '用户名', align: 'center' },
   { prop: 'nickname', label: '昵称', align: 'center' },
-  { prop: 'email', label: '邮箱', align: 'center' },
+  { prop: 'email', label: '邮箱', align: 'center', minWidth: 200 },
   { prop: 'role', label: '角色', align: 'center', formatter: (row) => {
     const map = { admin: '管理员', teacher: '教师', student: '学生' }
-    return map[row.role] || row.role
+    return map[row.role] || row.role || '学生'
   }},
-  { prop: 'createdAt', label: '创建时间', align: 'center', width: 180 }
+  { prop: 'createTime', label: '创建时间', align: 'center', width: 180 }
 ]
 
-// ========== 生命周期 ==========
 onMounted(() => {
   fetchUserList()
 })
 
-// ========== 方法函数 ==========
-
-// 获取用户列表
 const fetchUserList = async () => {
   loading.value = true
   try {
@@ -110,32 +91,27 @@ const fetchUserList = async () => {
   }
 }
 
-// 搜索用户
 const handleSearch = () => {
   pagination.value.currentPage = 1
   fetchUserList()
 }
 
-// 页码切换
 const handlePageChange = (page) => {
   pagination.value.currentPage = page
   fetchUserList()
 }
 
-// 每页条数切换
 const handleSizeChange = (size) => {
   pagination.value.pageSize = size
   pagination.value.currentPage = 1
   fetchUserList()
 }
 
-// 刷新列表
 const handleRefresh = () => {
   fetchUserList()
   ElMessage.success('数据已刷新')
 }
 
-// 点击新增按钮
 const handleAdd = () => {
   title.value = '新增用户'
   editingId.value = null
@@ -143,7 +119,6 @@ const handleAdd = () => {
   showModal.value = true
 }
 
-// 编辑用户
 const handleEdit = (row) => {
   title.value = '编辑用户'
   editingId.value = row.id
@@ -156,7 +131,6 @@ const handleEdit = (row) => {
   showModal.value = true
 }
 
-// 删除用户
 const handleDelete = (row) => {
   ElMessageBox.confirm(
     `确定要删除用户「${row.nickname}」吗？`,
@@ -170,29 +144,26 @@ const handleDelete = (row) => {
     try {
       await deleteUser(row.id)
       ElMessage.success('删除成功')
-      // 刷新列表
       fetchUserList()
     } catch (error) {
       console.error('删除用户失败:', error)
       ElMessage.error('删除用户失败')
     }
   }).catch(() => {
-    // 用户取消删除
   })
 }
 
-// 重置表单
 const resetForm = () => {
   form.value = {
     username: '',
     nickname: '',
     email: '',
+    password: '',
     role: 'student'
   }
   formRef.value?.resetFields()
 }
 
-// 提交表单
 const handleSubmit = async () => {
   if (!formRef.value) return
 
@@ -205,22 +176,14 @@ const handleSubmit = async () => {
 
     try {
       if (editingId.value === null) {
-        // 新增用户
         await createUser(form.value)
         ElMessage.success('新增用户成功')
       } else {
-        // 编辑用户
         await updateUser(editingId.value, form.value)
         ElMessage.success('编辑用户成功')
       }
-
-      // 关闭弹窗
       showModal.value = false
-
-      // 重置表单
       resetForm()
-
-      // 刷新列表
       fetchUserList()
     } catch (error) {
       console.error('提交失败:', error)
@@ -231,7 +194,6 @@ const handleSubmit = async () => {
   })
 }
 
-// 弹窗关闭时自动重置表单
 const handleDialogClose = () => {
   resetForm()
 }
@@ -241,32 +203,36 @@ const handleDialogClose = () => {
   <div class="user-page">
     <!-- 页面头部 -->
     <div class="page-header">
-      <h2>用户管理</h2>
+      <div class="page-title-group">
+        <h2>用户管理</h2>
+        <span class="page-desc">管理系统中的所有用户账号</span>
+      </div>
       <el-button type="primary" :icon="Plus" @click="handleAdd">新增用户</el-button>
     </div>
 
     <!-- 搜索栏 -->
-    <el-card class="search-card">
-      <el-input
-        v-model="searchQuery"
-        placeholder="搜索用户名、昵称或邮箱"
-        prefix-icon="Search"
-        class="search-input"
-        clearable
-        @keyup.enter="handleSearch"
-      />
-      <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
-      <el-button :icon="Refresh" @click="handleRefresh">刷新</el-button>
+    <el-card class="search-card" shadow="never">
+      <div class="search-bar">
+        <el-input
+          v-model="searchQuery"
+          placeholder="搜索用户名、昵称或邮箱"
+          :prefix-icon="Search"
+          class="search-input"
+          clearable
+          @keyup.enter="handleSearch"
+        />
+        <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
+        <el-button :icon="Refresh" @click="handleRefresh">刷新</el-button>
+      </div>
     </el-card>
 
     <!-- 数据表格 -->
-    <el-card class="table-card">
+    <el-card class="table-card" shadow="never">
       <el-table
         :data="tableData"
-        border
-        stripe
         style="width: 100%"
         v-loading="loading"
+        :header-cell-style="{ background: 'var(--color-bg)', color: 'var(--color-text-primary)', fontWeight: 600 }"
       >
         <el-table-column
           v-for="col in tableColumns"
@@ -275,9 +241,21 @@ const handleDialogClose = () => {
           :label="col.label"
           :align="col.align || 'left'"
           :width="col.width"
+          :min-width="col.minWidth"
         >
           <template #default="scope">
-            {{ col.formatter ? col.formatter(scope.row) : scope.row[col.prop] }}
+            <span v-if="col.prop === 'role'">
+              <el-tag
+                :type="scope.row.role === 'admin' ? 'danger' : scope.row.role === 'teacher' ? 'warning' : 'info'"
+                size="small"
+                effect="plain"
+              >
+                {{ col.formatter ? col.formatter(scope.row) : scope.row[col.prop] }}
+              </el-tag>
+            </span>
+            <span v-else>
+              {{ col.formatter ? col.formatter(scope.row) : scope.row[col.prop] }}
+            </span>
           </template>
         </el-table-column>
         <el-table-column label="操作" align="center" width="160" fixed="right">
@@ -289,22 +267,24 @@ const handleDialogClose = () => {
       </el-table>
 
       <!-- 分页 -->
-      <el-pagination
-        :current-page="pagination.currentPage"
-        :page-size="pagination.pageSize"
-        :total="pagination.total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSizeChange"
-        @current-change="handlePageChange"
-      />
+      <div class="pagination-wrap">
+        <el-pagination
+          :current-page="pagination.currentPage"
+          :page-size="pagination.pageSize"
+          :total="pagination.total"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handlePageChange"
+        />
+      </div>
     </el-card>
 
     <!-- 新增/编辑弹窗 -->
     <el-dialog
       :title="title"
       v-model="showModal"
-      width="500px"
+      width="520px"
       :before-close="handleDialogClose"
     >
       <el-form
@@ -317,6 +297,16 @@ const handleDialogClose = () => {
           <el-input
             v-model="form.username"
             placeholder="请输入用户名"
+            clearable
+          />
+        </el-form-item>
+
+        <el-form-item label="密码" prop="password" v-if="editingId === null">
+          <el-input
+            v-model="form.password"
+            type="password"
+            show-password
+            placeholder="请输入密码"
             clearable
           />
         </el-form-item>
@@ -360,7 +350,7 @@ const handleDialogClose = () => {
           :loading="submitLoading"
           @click="handleSubmit"
         >
-          确定
+          确 定
         </el-button>
       </template>
     </el-dialog>
@@ -369,40 +359,76 @@ const handleDialogClose = () => {
 
 <style scoped>
 .user-page {
-  padding: 20px;
+  padding: var(--spacing-lg);
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
+/* 页面头部 */
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
+}
+
+.page-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
 }
 
 .page-header h2 {
-  font-size: 20px;
-  font-weight: 600;
-  color: #333;
+  font-size: var(--font-2xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
+.page-desc {
+  font-size: var(--font-sm);
+  color: var(--color-text-tertiary);
+}
+
+/* 搜索栏 */
 .search-card {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  --el-card-padding: 16px 20px;
+}
+
+.search-bar {
   display: flex;
   gap: 12px;
   align-items: center;
 }
 
 .search-input {
-  width: 300px;
+  width: 320px;
 }
 
+/* 表格卡片 */
 .table-card {
-  padding: 20px;
+  border-radius: var(--radius-lg);
+  --el-card-padding: 0;
 }
 
-.table-card :deep(.el-pagination) {
-  margin-top: 20px;
-  text-align: right;
+.table-card :deep(.el-table) {
+  border: none;
+}
+
+.table-card :deep(.el-table th.el-table__cell) {
+  background: var(--color-bg) !important;
+}
+
+.table-card :deep(.el-table__body tr:hover > td) {
+  background: var(--color-primary-bg) !important;
+}
+
+.pagination-wrap {
+  padding: 16px 20px;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--color-border-light);
 }
 </style>

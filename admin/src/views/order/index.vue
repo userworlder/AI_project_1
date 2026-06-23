@@ -1,11 +1,8 @@
 <script setup>
 import { ref, reactive } from 'vue'
-import { useRouter } from 'vue-router'
 import { getOrderList, deleteOrder } from '@/api/order'
 import { Search, Delete, Refresh } from '@element-plus/icons-vue'
-import { ElMessage, ElTable, ElTableColumn, ElPagination, ElInput, ElButton, ElSelect, ElOption } from 'element-plus'
-
-const router = useRouter()
+import { ElMessage, ElMessageBox, ElTable, ElTableColumn, ElPagination, ElInput, ElButton, ElSelect, ElOption } from 'element-plus'
 
 const tableData = ref([])
 const loading = ref(false)
@@ -29,37 +26,29 @@ const statusOptions = [
   { label: '已取消', value: 'cancelled' }
 ]
 
-const getStatusText = (status) => {
-  const map = {
-    'pending': '待支付',
-    'paid': '已支付',
-    'completed': '已完成',
-    'cancelled': '已取消'
-  }
-  return map[status] || status
+const statusConfig = {
+  'pending': { label: '待支付', color: '#F59E0B', bg: 'rgba(245,158,11,0.1)' },
+  'paid': { label: '已支付', color: '#6366F1', bg: 'rgba(99,102,241,0.1)' },
+  'completed': { label: '已完成', color: '#10B981', bg: 'rgba(16,185,129,0.1)' },
+  'cancelled': { label: '已取消', color: '#EF4444', bg: 'rgba(239,68,68,0.1)' }
 }
 
-const getStatusClass = (status) => {
-  const map = {
-    'pending': 'status-pending',
-    'paid': 'status-paid',
-    'completed': 'status-completed',
-    'cancelled': 'status-cancelled'
-  }
-  return map[status] || ''
+const getStatusConfig = (status) => {
+  return statusConfig[status] || { label: status, color: '#94A3B8', bg: 'rgba(148,163,184,0.1)' }
 }
 
 const loadData = async () => {
   loading.value = true
   try {
     const params = {
-      page: pagination.current,
+      current: pagination.current,
       size: pagination.size,
       keyword: searchForm.keyword,
       status: searchForm.status
     }
     const data = await getOrderList(params)
-    tableData.value = data.list || data
+    // 支持 records 和 list 两种格式
+    tableData.value = data.records || data.list || data || []
     total.value = data.total || 0
   } catch (error) {
     console.error('加载订单列表失败:', error)
@@ -104,7 +93,7 @@ const handleDelete = async (id) => {
 }
 
 const confirmDelete = (id) => {
-  ElMessage.confirm(
+  ElMessageBox.confirm(
     '确定要删除这个订单吗？',
     '确认删除',
     {
@@ -125,99 +114,83 @@ loadData()
 <template>
   <div class="order-container">
     <div class="page-header">
-      <h2 class="title">订单管理</h2>
+      <div class="title-group">
+        <h2 class="title">订单管理</h2>
+        <span class="page-desc">查看和管理平台所有订单</span>
+      </div>
     </div>
 
-    <div class="search-bar">
-      <div class="search-group">
-        <ElInput
-          v-model="searchForm.keyword"
-          placeholder="请输入订单号或用户昵称搜索"
-          :prefix-icon="Search"
-          class="search-input"
-          @keyup.enter="handleSearch"
-        />
-      </div>
-      
-      <div class="search-group">
-        <ElSelect
-          v-model="searchForm.status"
-          placeholder="订单状态"
-          class="status-select"
-        >
-          <ElOption
-            v-for="option in statusOptions"
-            :key="option.value"
-            :label="option.label"
-            :value="option.value"
+    <el-card class="search-card" shadow="never">
+      <div class="search-bar">
+        <div class="search-group">
+          <ElInput
+            v-model="searchForm.keyword"
+            placeholder="请输入订单号或用户昵称搜索"
+            :prefix-icon="Search"
+            class="search-input"
+            @keyup.enter="handleSearch"
           />
-        </ElSelect>
-      </div>
+        </div>
 
-      <div class="btn-group">
-        <ElButton type="primary" @click="handleSearch">
-          <Search />
-          搜索
-        </ElButton>
-        <ElButton @click="handleReset">
-          <Refresh />
-          重置
-        </ElButton>
-      </div>
-    </div>
+        <div class="search-group">
+          <ElSelect
+            v-model="searchForm.status"
+            placeholder="订单状态"
+            class="status-select"
+          >
+            <ElOption
+              v-for="option in statusOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </ElSelect>
+        </div>
 
-    <div class="table-wrapper">
+        <div class="btn-group">
+          <ElButton type="primary" :icon="Search" @click="handleSearch">搜索</ElButton>
+          <ElButton :icon="Refresh" @click="handleReset">重置</ElButton>
+        </div>
+      </div>
+    </el-card>
+
+    <el-card class="table-card" shadow="never">
       <ElTable
         v-loading="loading"
         :data="tableData"
-        border
         style="width: 100%"
         :empty-text="loading ? '加载中...' : '暂无数据'"
+        :header-cell-style="{ background: 'var(--color-bg)', color: 'var(--color-text-primary)', fontWeight: 600 }"
       >
-        <ElTableColumn
-          prop="orderNo"
-          label="订单号"
-          min-width="180"
-        />
-        <ElTableColumn
-          prop="userNickname"
-          label="用户昵称"
-          min-width="120"
-        />
-        <ElTableColumn
-          prop="amount"
-          label="支付金额"
-          min-width="120"
-          align="right"
-          :formatter="(row) => `¥${row.amount.toFixed(2)}`"
-        />
-        <ElTableColumn
-          prop="status"
-          label="状态"
-          min-width="100"
-          align="center"
-        >
+        <ElTableColumn prop="orderNo" label="订单号" min-width="180" />
+        <ElTableColumn prop="userNickname" label="用户昵称" min-width="120" />
+        <ElTableColumn prop="amount" label="支付金额" min-width="120" align="right">
           <template #default="scope">
-            <span :class="['status-tag', getStatusClass(scope.row.status)]">
-              {{ getStatusText(scope.row.status) }}
+            <span style="font-weight: 600; color: var(--color-text-primary)">
+              ¥{{ scope.row.amount?.toFixed(2) }}
             </span>
           </template>
         </ElTableColumn>
-        <ElTableColumn
-          prop="createTime"
-          label="创建时间"
-          min-width="160"
-        />
-        <ElTableColumn
-          label="操作"
-          min-width="120"
-          align="center"
-          fixed="right"
-        >
+        <ElTableColumn prop="status" label="状态" min-width="100" align="center">
+          <template #default="scope">
+            <span
+              class="status-badge"
+              :style="{
+                background: getStatusConfig(scope.row.status).bg,
+                color: getStatusConfig(scope.row.status).color
+              }"
+            >
+              {{ getStatusConfig(scope.row.status).label }}
+            </span>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn prop="createTime" label="创建时间" min-width="160" />
+        <ElTableColumn label="操作" min-width="120" align="center" fixed="right">
           <template #default="scope">
             <ElButton
               type="danger"
               size="small"
+              text
               :icon="Delete"
               @click="confirmDelete(scope.row.id)"
             >
@@ -226,49 +199,62 @@ loadData()
           </template>
         </ElTableColumn>
       </ElTable>
-    </div>
 
-    <div class="pagination-wrapper">
-      <ElPagination
-        :current-page="pagination.current"
-        :page-size="pagination.size"
-        :total="total"
-        :page-sizes="[10, 20, 50, 100]"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSizeChange"
-        @current-change="handlePageChange"
-      />
-    </div>
+      <div class="pagination-wrapper">
+        <ElPagination
+          :current-page="pagination.current"
+          :page-size="pagination.size"
+          :total="total"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handlePageChange"
+        />
+      </div>
+    </el-card>
   </div>
 </template>
 
 <style scoped>
 .order-container {
-  background: #fff;
-  border-radius: 12px;
-  padding: 24px;
-  min-height: calc(100vh - 180px);
+  padding: var(--spacing-lg);
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .page-header {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
+}
+
+.title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
 }
 
 .title {
-  font-size: 20px;
-  font-weight: bold;
-  color: #333;
+  font-size: var(--font-2xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
   margin: 0;
+}
+
+.page-desc {
+  font-size: var(--font-sm);
+  color: var(--color-text-tertiary);
+}
+
+/* 搜索栏 */
+.search-card {
+  margin-bottom: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  --el-card-padding: 16px 20px;
 }
 
 .search-bar {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 20px;
-  padding: 16px 20px;
-  background: #f8f9fa;
-  border-radius: 8px;
   flex-wrap: wrap;
 }
 
@@ -291,42 +277,33 @@ loadData()
   margin-left: auto;
 }
 
-.table-wrapper {
-  margin-bottom: 20px;
+/* 表格卡片 */
+.table-card {
+  border-radius: var(--radius-lg);
+  --el-card-padding: 0;
 }
 
-.status-tag {
+.table-card :deep(.el-table) {
+  border: none;
+}
+
+.table-card :deep(.el-table th.el-table__cell) {
+  background: var(--color-bg) !important;
+}
+
+/* 状态徽章 */
+.status-badge {
   display: inline-block;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.status-pending {
-  background: #fff7e6;
-  color: #d48806;
-}
-
-.status-paid {
-  background: #e6f7ff;
-  color: #1890ff;
-}
-
-.status-completed {
-  background: #f6ffed;
-  color: #52c41a;
-}
-
-.status-cancelled {
-  background: #fff1f0;
-  color: #ff4d4f;
+  padding: 4px 14px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-xs);
+  font-weight: 600;
 }
 
 .pagination-wrapper {
+  padding: 16px 20px;
   display: flex;
   justify-content: flex-end;
-  padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--color-border-light);
 }
 </style>

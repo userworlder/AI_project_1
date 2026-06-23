@@ -14,7 +14,7 @@ public interface UserService {
 
     UserVO updateUser(Long id, UpdateUserDTO updateDTO);
 
-    PageResult<UserVO> getUsers(Integer current, Integer size);
+    PageResult<UserVO> getUsers(Integer current, Integer size, String keyword);
 
     void deleteUser(Long id);
 

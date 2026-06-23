@@ -2,14 +2,23 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 // ========== 路由表配置 ==========
 const routes = [
-  // ========== 登录页 - 无需鉴权 ==========
+  // ========== 登录页和注册页 - 无需鉴权 ==========
   {
     path: '/login',
     name: 'Login',
     component: () => import('@/views/login/index.vue'),
     meta: {
       title: '登录',
-      requiresAuth: false  // 无需鉴权
+      requiresAuth: false
+    }
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: () => import('@/views/login/register.vue'),
+    meta: {
+      title: '注册',
+      requiresAuth: false
     }
   },
 
@@ -132,8 +141,8 @@ router.beforeEach((to, from, next) => {
   // 4. 核心权限控制逻辑
   if (hasToken) {
     // 已登录
-    if (to.path === '/login') {
-      // 已登录且访问登录页 → 跳转到仪表盘
+    if (to.path === '/login' || to.path === '/register') {
+      // 已登录且访问登录/注册页 → 跳转到仪表盘
       next('/dashboard')
     } else {
       // 已登录访问其他页面 → 正常放行

@@ -1,19 +1,21 @@
 import request from '@/utils/request'
 
-// ========== Mock 数据 ==========
+/** 转换后端分页格式 -> 前端分页格式 */
+const transformPageResult = (data) => {
+  if (!data) return { list: [], total: 0, page: 1, pageSize: 10 }
+  return {
+    list: data.records || data.list || [],
+    total: data.total || 0,
+    page: data.current || data.page || 1,
+    pageSize: data.size || data.pageSize || 10
+  }
+}
+
+// ========== Mock 数据兜底 ==========
 const mockUserList = [
-  { id: 1, username: 'admin', nickname: '管理员', email: 'admin@example.com', role: 'admin', createdAt: '2024-01-01 10:00:00' },
-  { id: 2, username: 'teacher1', nickname: '张老师', email: 'teacher1@example.com', role: 'teacher', createdAt: '2024-01-02 11:00:00' },
-  { id: 3, username: 'teacher2', nickname: '李老师', email: 'teacher2@example.com', role: 'teacher', createdAt: '2024-01-03 12:00:00' },
-  { id: 4, username: 'student1', nickname: '小明', email: 'student1@example.com', role: 'student', createdAt: '2024-01-04 13:00:00' },
-  { id: 5, username: 'student2', nickname: '小红', email: 'student2@example.com', role: 'student', createdAt: '2024-01-05 14:00:00' },
-  { id: 6, username: 'student3', nickname: '小刚', email: 'student3@example.com', role: 'student', createdAt: '2024-01-06 15:00:00' },
-  { id: 7, username: 'student4', nickname: '小丽', email: 'student4@example.com', role: 'student', createdAt: '2024-01-07 16:00:00' },
-  { id: 8, username: 'student5', nickname: '小华', email: 'student5@example.com', role: 'student', createdAt: '2024-01-08 17:00:00' },
-  { id: 9, username: 'student6', nickname: '小强', email: 'student6@example.com', role: 'student', createdAt: '2024-01-09 18:00:00' },
-  { id: 10, username: 'student7', nickname: '小芳', email: 'student7@example.com', role: 'student', createdAt: '2024-01-10 19:00:00' },
-  { id: 11, username: 'student8', nickname: '小军', email: 'student8@example.com', role: 'student', createdAt: '2024-01-11 20:00:00' },
-  { id: 12, username: 'student9', nickname: '小梅', email: 'student9@example.com', role: 'student', createdAt: '2024-01-12 21:00:00' }
+  { id: 1, username: 'admin', nickname: '管理员', email: 'admin@example.com', role: 'admin', status: 1, createTime: '2024-01-01 10:00:00' },
+  { id: 2, username: 'teacher1', nickname: '张老师', email: 'teacher1@example.com', role: 'teacher', status: 1, createTime: '2024-01-02 11:00:00' },
+  { id: 3, username: 'student1', nickname: '小明', email: 'student1@example.com', role: 'student', status: 1, createTime: '2024-01-04 13:00:00' }
 ]
 
 // ========== 接口函数 ==========
@@ -23,33 +25,29 @@ export const getUserList = async (params) => {
     const response = await request({
       url: '/users',
       method: 'get',
-      params
+      params: {
+        current: params?.page || 1,
+        size: params?.pageSize || 10,
+        keyword: params?.keyword || undefined
+      }
     })
-    return response
+    return transformPageResult(response)
   } catch (error) {
     console.warn('接口调用失败，使用 Mock 数据兜底:', error)
-    // Mock 数据兜底：前端分页和搜索
     let filteredList = [...mockUserList]
-
-    // 搜索过滤
     if (params?.keyword) {
-      const keyword = params.keyword.toLowerCase()
+      const kw = params.keyword.toLowerCase()
       filteredList = filteredList.filter(item =>
-        item.username.toLowerCase().includes(keyword) ||
-        item.nickname.toLowerCase().includes(keyword) ||
-        item.email.toLowerCase().includes(keyword)
+        item.username.toLowerCase().includes(kw) ||
+        item.nickname.toLowerCase().includes(kw) ||
+        (item.email && item.email.toLowerCase().includes(kw))
       )
     }
-
-    // 分页
     const page = params?.page || 1
     const pageSize = params?.pageSize || 10
     const start = (page - 1) * pageSize
-    const end = start + pageSize
-    const list = filteredList.slice(start, end)
-
     return {
-      list,
+      list: filteredList.slice(start, start + pageSize),
       total: filteredList.length,
       page,
       pageSize
@@ -67,9 +65,7 @@ export const getUserById = async (id) => {
   } catch (error) {
     console.warn('接口调用失败，使用 Mock 数据兜底:', error)
     const user = mockUserList.find(item => item.id === Number(id))
-    if (!user) {
-      throw new Error('用户不存在')
-    }
+    if (!user) throw new Error('用户不存在')
     return user
   }
 }
@@ -77,7 +73,7 @@ export const getUserById = async (id) => {
 export const createUser = async (data) => {
   try {
     const response = await request({
-      url: '/users',
+      url: '/users/register',
       method: 'post',
       data
     })
@@ -85,16 +81,9 @@ export const createUser = async (data) => {
   } catch (error) {
     console.warn('接口调用失败，使用 Mock 数据兜底:', error)
     const newUser = {
-      id: Date.now(),
-      ...data,
-      createdAt: new Date().toLocaleString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-      }).replace(/\//g, '-')
+      id: Date.now(), ...data,
+      status: 1,
+      createTime: new Date().toISOString().replace('T', ' ').substring(0, 19)
     }
     mockUserList.unshift(newUser)
     return newUser
@@ -112,9 +101,7 @@ export const updateUser = async (id, data) => {
   } catch (error) {
     console.warn('接口调用失败，使用 Mock 数据兜底:', error)
     const index = mockUserList.findIndex(item => item.id === Number(id))
-    if (index === -1) {
-      throw new Error('用户不存在')
-    }
+    if (index === -1) throw new Error('用户不存在')
     mockUserList[index] = { ...mockUserList[index], ...data }
     return mockUserList[index]
   }
@@ -130,9 +117,7 @@ export const deleteUser = async (id) => {
   } catch (error) {
     console.warn('接口调用失败，使用 Mock 数据兜底:', error)
     const index = mockUserList.findIndex(item => item.id === Number(id))
-    if (index === -1) {
-      throw new Error('用户不存在')
-    }
+    if (index === -1) throw new Error('用户不存在')
     mockUserList.splice(index, 1)
     return { success: true }
   }

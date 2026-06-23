@@ -4,31 +4,19 @@ import { getSkillTree, getSkillTreeByCategory } from '@/api/skill';
 import { Plus, Edit, Delete, Search, Refresh, Filter } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 // ========== 状态定义 ==========
-// 全量数据（来自 Mock）
 const allData = ref(mockSkillList);
-// 树形数据
 const treeData = ref([]);
-// 搜索关键词
 const searchQuery = ref('');
-// 分类筛选
 const filterCategory = ref('');
-// 加载状态
 const loading = ref(false);
-// 分页配置
 const pagination = ref({
  currentPage: 1,
  pageSize: 10
 });
-// ========== 弹窗与表单状态 ==========
-// 弹窗显示状态
 const showModal = ref(false);
-// 表单引用（用于触发表单验证）
 const formRef = ref(null);
-// 弹窗标题
 const title = ref('新增技能');
-// 当前编辑的 ID（为 null 时是新增模式）
 const editingId = ref(null);
-// 表单数据
 const form = ref({
  id: null,
  name: '',
@@ -36,9 +24,7 @@ const form = ref({
  level: 1,
  description: ''
 });
-// 提交按钮加载状态
 const submitLoading = ref(false);
-// ========== 表单校验规则 ==========
 const rules = {
  name: [
  { required: true, message: '请输入技能名称', trigger: 'blur' },
@@ -56,7 +42,6 @@ const rules = {
  { min: 5, max: 200, message: '描述为 5-200 个字符', trigger: 'blur' }
  ]
 };
-// ========== 难度等级选项 ==========
 const levelOptions = [
  { label: '1 - 入门', value: 1 },
  { label: '2 - 基础', value: 2 },
@@ -64,7 +49,6 @@ const levelOptions = [
  { label: '4 - 高级', value: 4 },
  { label: '5 - 专家', value: 5 }
 ];
-// ========== 分类选项（用于下拉选择）==========
 const categoryOptions = [
  { label: '前端开发', value: '前端开发' },
  { label: '后端开发', value: '后端开发' },
@@ -73,8 +57,6 @@ const categoryOptions = [
  { label: '架构设计', value: '架构设计' },
  { label: '工具', value: '工具' }
 ];
-// ========== 计算属性 ==========
-// 根据关键词过滤全量数据（支持技能名称和分类模糊搜索）
 const filteredData = computed(() => {
  const keyword = searchQuery.value.trim().toLowerCase();
  if (!keyword) {
@@ -83,25 +65,19 @@ const filteredData = computed(() => {
  return allData.value.filter(item => item.name.toLowerCase().includes(keyword) ||
  item.category.toLowerCase().includes(keyword));
 });
-// 过滤后的总数据条数
 const total = computed(() => filteredData.value.length);
-// 当前页展示的数据（切片实现）
 const list = computed(() => {
  const start = (pagination.value.currentPage - 1) * pagination.value.pageSize;
  const end = start + pagination.value.pageSize;
  return filteredData.value.slice(start, end);
 });
-// ========== 方法函数 ==========
-// 获取技能树数据
 const fetchTree = async () => {
  loading.value = true;
  try {
  if (filterCategory.value) {
- // 按分类查询
  treeData.value = await getSkillTreeByCategory(filterCategory.value);
  }
  else {
- // 获取全量技能树
  treeData.value = await getSkillTree();
  }
  }
@@ -113,24 +89,19 @@ const fetchTree = async () => {
  loading.value = false;
  }
 };
-// 搜索（重置页码为第1页）
 const handleSearch = () => {
  pagination.value.currentPage = 1;
 };
-// 分类筛选变化
 const handleCategoryChange = () => {
  fetchTree();
 };
-// 页码切换
 const handlePageChange = (page) => {
  pagination.value.currentPage = page;
 };
-// 每页条数切换
 const handleSizeChange = (size) => {
  pagination.value.pageSize = size;
  pagination.value.currentPage = 1;
 };
-// 刷新数据
 const handleRefresh = () => {
  searchQuery.value = '';
  filterCategory.value = '';
@@ -138,41 +109,34 @@ const handleRefresh = () => {
  fetchTree();
  ElMessage.success('数据已刷新');
 };
-// 点击新增按钮
 const handleAdd = () => {
  title.value = '新增技能';
  editingId.value = null;
  resetForm();
  showModal.value = true;
 };
-// 点击编辑按钮
 const handleEdit = (row) => {
  title.value = '编辑技能';
  editingId.value = row.id;
  form.value = { ...row };
  showModal.value = true;
 };
-// 删除技能（带二次确认）
 const handleDelete = (row) => {
  ElMessageBox.confirm(`确定要删除技能「${row.name}」吗？`, '确认删除', {
  confirmButtonText: '确定',
  cancelButtonText: '取消',
  type: 'warning'
  }).then(() => {
- // 用户确认删除
  const index = allData.value.findIndex(item => item.id === row.id);
  if (index > -1) {
  allData.value.splice(index, 1);
- // 同步更新树形数据
  fetchTree();
  ElMessage.success('删除成功');
  }
  }).catch(() => {
- // 用户取消删除
  ElMessage.info('已取消删除');
  });
 };
-// 重置表单
 const resetForm = () => {
  form.value = {
  id: null,
@@ -181,26 +145,20 @@ const resetForm = () => {
  level: 1,
  description: ''
  };
- // 重置表单验证状态
  formRef.value?.resetFields();
 };
-// 提交表单
 const handleSubmit = async () => {
- // 触发表单验证
  if (!formRef.value)
  return;
  await formRef.value.validate((valid) => {
  if (!valid) {
- // 验证不通过，不执行后续逻辑
  return false;
  }
- // 验证通过，设置加载状态
  submitLoading.value = true;
  try {
  if (editingId.value === null) {
- // ========== 新增模式 ==========
  const newSkill = {
- id: Date.now(), // 用时间戳模拟唯一 ID
+ id: Date.now(),
  name: form.value.name,
  category: form.value.category,
  level: form.value.level,
@@ -214,12 +172,10 @@ const handleSubmit = async () => {
  second: '2-digit'
  }).replace(/\//g, '-')
  };
- // 添加到列表开头
  allData.value.unshift(newSkill);
  ElMessage.success('新增技能成功');
  }
  else {
- // ========== 编辑模式 ==========
  const index = allData.value.findIndex(item => item.id === editingId.value);
  if (index > -1) {
  allData.value[index] = {
@@ -232,35 +188,27 @@ const handleSubmit = async () => {
  ElMessage.success('编辑技能成功');
  }
  }
- // 同步更新树形数据
  fetchTree();
- // 关闭弹窗
  showModal.value = false;
- // 重置表单
  resetForm();
  }
  finally {
- // 取消加载状态
  submitLoading.value = false;
  }
  });
 };
-// 弹窗关闭时自动重置表单
 const handleDialogClose = () => {
  resetForm();
 };
-// 获取难度等级的样式类型
 const getLevelType = (level) => {
  const types = ['', 'success', 'primary', 'warning', 'danger', 'danger'];
  return types[level] || 'info';
 };
-// 获取难度等级的标签文本
 const getLevelText = (level) => {
  const texts = ['', '入门', '基础', '进阶', '高级', '专家'];
  return texts[level] || `等级 ${level}`;
 };
 
-// ========== 生命周期 ==========
 onMounted(() => {
  fetchTree();
 });
@@ -268,42 +216,44 @@ onMounted(() => {
 
 <template>
   <div class="skill-page">
-    <!-- 页面头部 -->
     <div class="page-header">
-      <h2>技能树管理</h2>
+      <div class="page-title-group">
+        <h2>技能树管理</h2>
+        <span class="page-desc">管理平台中的技能体系</span>
+      </div>
       <el-button type="primary" :icon="Plus" @click="handleAdd">新增技能</el-button>
     </div>
 
-    <!-- 搜索栏 -->
-    <el-card class="search-card">
-      <el-input
-        v-model="searchQuery"
-        placeholder="搜索技能名称或分类"
-        prefix-icon="Search"
-        class="search-input"
-        clearable
-        @keyup.enter="handleSearch"
-      />
-      <el-select
-        v-model="filterCategory"
-        placeholder="按分类筛选"
-        class="category-select"
-        clearable
-        @change="handleCategoryChange"
-      >
-        <el-option
-          v-for="item in categoryOptions"
-          :key="item.value"
-          :label="item.label"
-          :value="item.value"
+    <el-card class="search-card" shadow="never">
+      <div class="search-bar">
+        <el-input
+          v-model="searchQuery"
+          placeholder="搜索技能名称或分类"
+          :prefix-icon="Search"
+          class="search-input"
+          clearable
+          @keyup.enter="handleSearch"
         />
-      </el-select>
-      <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
-      <el-button :icon="Refresh" @click="handleRefresh">刷新</el-button>
+        <el-select
+          v-model="filterCategory"
+          placeholder="按分类筛选"
+          class="category-select"
+          clearable
+          @change="handleCategoryChange"
+        >
+          <el-option
+            v-for="item in categoryOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
+        <el-button type="primary" :icon="Search" @click="handleSearch">搜索</el-button>
+        <el-button :icon="Refresh" @click="handleRefresh">刷新</el-button>
+      </div>
     </el-card>
 
-    <!-- 树形结构展示 -->
-    <el-card class="tree-card">
+    <el-card class="tree-card" shadow="never">
       <el-tree
         v-loading="loading"
         :data="treeData"
@@ -335,7 +285,6 @@ onMounted(() => {
       </el-tree>
     </el-card>
 
-    <!-- 数据表格（保留原有表格视图作为备用） -->
     <el-card class="table-card" v-if="false">
       <el-table
         :data="list"
@@ -361,8 +310,6 @@ onMounted(() => {
           </template>
         </el-table-column>
       </el-table>
-
-      <!-- 分页 -->
       <el-pagination
         v-model:current-page="pagination.currentPage"
         v-model:page-size="pagination.pageSize"
@@ -374,11 +321,10 @@ onMounted(() => {
       />
     </el-card>
 
-    <!-- 新增/编辑弹窗 -->
     <el-dialog
       :title="title"
       v-model="showModal"
-      width="500px"
+      width="520px"
       :before-close="handleDialogClose"
     >
       <el-form
@@ -426,10 +372,11 @@ onMounted(() => {
         </el-form-item>
 
         <el-form-item label="描述" prop="description">
-          <el-textarea
+          <el-input
             v-model="form.description"
             placeholder="请输入技能描述"
             :rows="3"
+            type="textarea"
           />
         </el-form-item>
       </el-form>
@@ -441,7 +388,7 @@ onMounted(() => {
           :loading="submitLoading"
           @click="handleSubmit"
         >
-          确定
+          确 定
         </el-button>
       </template>
     </el-dialog>
@@ -450,25 +397,43 @@ onMounted(() => {
 
 <style scoped>
 .skill-page {
-  padding: 20px;
+  padding: var(--spacing-lg);
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
+}
+
+.page-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
 }
 
 .page-header h2 {
-  font-size: 20px;
-  font-weight: 600;
-  color: #333;
+  font-size: var(--font-2xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
+.page-desc {
+  font-size: var(--font-sm);
+  color: var(--color-text-tertiary);
+}
+
 .search-card {
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  --el-card-padding: 16px 20px;
+}
+
+.search-bar {
   display: flex;
   gap: 12px;
   align-items: center;
@@ -483,7 +448,8 @@ onMounted(() => {
 }
 
 .tree-card {
-  padding: 20px;
+  border-radius: var(--radius-lg);
+  --el-card-padding: 16px;
 }
 
 .skill-tree {
@@ -491,11 +457,29 @@ onMounted(() => {
   overflow-y: auto;
 }
 
+.skill-tree :deep(.el-tree-node__content) {
+  height: auto;
+  padding: 8px 0;
+}
+
+.skill-tree :deep(.el-tree-node__expand-icon) {
+  font-size: 14px;
+  color: var(--color-text-tertiary);
+  margin-left: 4px;
+}
+
+.skill-tree :deep(.el-tree-node:not(.is-leaf) > .el-tree-node__content) {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  padding: 10px 0;
+}
+
 .tree-node-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
+  padding-right: 12px;
 }
 
 .tree-node-label {
@@ -506,18 +490,18 @@ onMounted(() => {
 
 .category-icon {
   font-size: 14px;
-  color: #667eea;
+  color: var(--color-primary);
 }
 
 .skill-icon {
   font-size: 8px;
-  color: #999;
+  color: var(--color-text-tertiary);
 }
 
 .tree-parent {
   font-weight: 600;
-  color: #333;
-  font-size: 15px;
+  color: var(--color-text-primary);
+  font-size: var(--font-md);
 }
 
 .tree-child {
@@ -527,7 +511,8 @@ onMounted(() => {
 }
 
 .skill-name {
-  color: #333;
+  color: var(--color-text-primary);
+  font-size: var(--font-base);
 }
 
 .level-tag {
@@ -537,16 +522,11 @@ onMounted(() => {
 
 .tree-node-actions {
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: opacity var(--transition-fast);
 }
 
 .el-tree-node:hover .tree-node-actions {
   opacity: 1;
-}
-
-.tree-actions {
-  display: flex;
-  gap: 8px;
 }
 
 .table-card {

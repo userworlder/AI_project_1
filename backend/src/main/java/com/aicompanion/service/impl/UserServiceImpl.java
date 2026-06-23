@@ -41,6 +41,10 @@ public class UserServiceImpl implements UserService {
         User user = new User();
         BeanUtils.copyProperties(registerDTO, user);
         user.setPassword(passwordEncoder.encode(registerDTO.getPassword()));
+        // 默认角色为学生
+        if (user.getRole() == null) {
+            user.setRole("student");
+        }
         user.setStatus(1);
 
         userMapper.insert(user);
@@ -71,7 +75,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public PageResult<UserVO> getUsers(Integer current, Integer size) {
+    public PageResult<UserVO> getUsers(Integer current, Integer size, String keyword) {
         if (current == null || current < 1) {
             current = 1;
         }
@@ -81,6 +85,14 @@ public class UserServiceImpl implements UserService {
 
         Page<User> page = new Page<>(current, size);
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+
+        // 关键词搜索（用户名、昵称、邮箱）
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            wrapper.and(w -> w.like(User::getUsername, keyword)
+                    .or().like(User::getNickname, keyword)
+                    .or().like(User::getEmail, keyword));
+        }
+
         wrapper.orderByDesc(User::getCreateTime);
         
         Page<User> userPage = userMapper.selectPage(page, wrapper);

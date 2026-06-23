@@ -1,21 +1,22 @@
 <template>
   <div class="page-container">
-    <el-card shadow="hover">
-      <template #header>
-        <div class="page-header">
-          <span class="page-title">计数器 - ref 响应式示例</span>
-        </div>
-      </template>
+    <div class="page-header">
+      <h2>计数器</h2>
+      <span class="page-desc">ref 响应式示例</span>
+    </div>
 
+    <el-card class="demo-card" shadow="never">
       <!-- 计数器展示区域 -->
       <div class="counter-area">
         <div class="counter-display" @click="increment">
-          <span class="counter-number">{{ count }}</span>
+          <transition name="counter-bounce" mode="out-in">
+            <span class="counter-number" :key="count">{{ count }}</span>
+          </transition>
           <span class="counter-hint">点击数字 +1</span>
         </div>
 
         <div class="counter-actions">
-          <el-button type="danger" @click="decrement">-1</el-button>
+          <el-button type="danger" plain @click="decrement">-1</el-button>
           <el-button @click="reset">重置</el-button>
         </div>
       </div>
@@ -49,24 +50,16 @@ count.value++              // 1
 import { ref } from 'vue'
 import { ElCard, ElButton, ElDivider, ElAlert } from 'element-plus'
 
-// ========== ref 响应式变量 ==========
-// ref 用于定义基本类型数据的响应式引用
-// 初始值为 0
 const count = ref(0)
 
-// ========== 事件处理函数 ==========
-// 点击数字自增
 const increment = () => {
-  // 在 JS 中修改 ref 值必须使用 .value
   count.value++
 }
 
-// 点击按钮减1
 const decrement = () => {
   count.value--
 }
 
-// 重置计数器
 const reset = () => {
   count.value = 0
 }
@@ -74,18 +67,36 @@ const reset = () => {
 
 <style scoped>
 .page-container {
-  padding: 20px;
+  padding: var(--spacing-lg);
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
 .page-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: var(--spacing-lg);
 }
 
-.page-title {
-  font-size: 16px;
-  font-weight: 600;
+.page-header h2 {
+  font-size: var(--font-2xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.page-desc {
+  font-size: var(--font-sm);
+  color: var(--color-text-tertiary);
+}
+
+.demo-card {
+  border-radius: var(--radius-lg);
+}
+
+.demo-card :deep(.el-card__body) {
+  padding: 32px;
 }
 
 .counter-area {
@@ -100,38 +111,42 @@ const reset = () => {
   flex-direction: column;
   align-items: center;
   cursor: pointer;
-  transition: transform 0.2s;
-  padding: 30px 60px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 36px 80px;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
   color: white;
-  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 8px 32px rgba(99, 102, 241, 0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  user-select: none;
 }
 
 .counter-display:hover {
-  transform: scale(1.05);
+  transform: scale(1.03);
+  box-shadow: 0 12px 40px rgba(99, 102, 241, 0.4);
 }
 
 .counter-display:active {
-  transform: scale(0.95);
+  transform: scale(0.97);
 }
 
 .counter-number {
   font-size: 72px;
-  font-weight: bold;
+  font-weight: 800;
   line-height: 1;
+  letter-spacing: -2px;
 }
 
 .counter-hint {
-  font-size: 14px;
-  margin-top: 10px;
+  font-size: var(--font-base);
+  margin-top: 12px;
   opacity: 0.8;
+  font-weight: 400;
 }
 
 .counter-actions {
   display: flex;
-  gap: 15px;
-  margin-top: 30px;
+  gap: 16px;
+  margin-top: 32px;
 }
 
 .explanation {
@@ -140,9 +155,9 @@ const reset = () => {
 
 .code-example {
   margin-top: 15px;
-  background: #1e1e1e;
-  border-radius: 8px;
-  padding: 15px;
+  background: #1E293B;
+  border-radius: var(--radius-md);
+  padding: 20px;
   overflow-x: auto;
 }
 
@@ -151,9 +166,21 @@ const reset = () => {
 }
 
 .code-example code {
-  color: #9cdcfe;
-  font-family: 'Courier New', monospace;
+  color: #A5B4FC;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.7;
+}
+
+/* 数字切换动画 */
+.counter-bounce-enter-active {
+  animation: bounce-in 0.25s ease;
+}
+.counter-bounce-leave-active {
+  animation: bounce-in 0.15s ease reverse;
+}
+@keyframes bounce-in {
+  0% { transform: scale(0.5); opacity: 0.3; }
+  100% { transform: scale(1); opacity: 1; }
 }
 </style>

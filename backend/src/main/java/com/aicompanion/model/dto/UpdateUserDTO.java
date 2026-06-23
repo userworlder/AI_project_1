@@ -14,4 +14,6 @@ public class UpdateUserDTO {
     private String phone;
 
     private String avatar;
+
+    private String role;
 }

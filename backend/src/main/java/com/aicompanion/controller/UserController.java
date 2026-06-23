@@ -36,19 +36,29 @@ public class UserController {
 
     @Operation(summary = "更新用户信息")
     @PutMapping("/{id}")
-    public Result<UserVO> updateUser(@PathVariable Long id, 
+    public Result<UserVO> updateUser(@PathVariable Long id,
                                      @Valid @RequestBody UpdateUserDTO updateDTO) {
         UserVO userVO = userService.updateUser(id, updateDTO);
         return Result.success("更新成功", userVO);
     }
 
-    @Operation(summary = "获取用户列表")
-    @GetMapping("/list")
+    @Operation(summary = "分页查询用户列表（含关键词搜索）")
+    @GetMapping
     public Result<PageResult<UserVO>> getUsers(
             @RequestParam(defaultValue = "1") Integer current,
-            @RequestParam(defaultValue = "10") Integer size) {
-        PageResult<UserVO> pageResult = userService.getUsers(current, size);
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(required = false) String keyword) {
+        PageResult<UserVO> pageResult = userService.getUsers(current, size, keyword);
         return Result.success(pageResult);
+    }
+
+    @Operation(summary = "分页查询用户列表（兼容旧路径）")
+    @GetMapping("/list")
+    public Result<PageResult<UserVO>> getUsersList(
+            @RequestParam(defaultValue = "1") Integer current,
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(required = false) String keyword) {
+        return getUsers(current, size, keyword);
     }
 
     @Operation(summary = "删除用户")
