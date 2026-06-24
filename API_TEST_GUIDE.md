@@ -1,623 +1,726 @@
-# 灵思·AI学伴 - API 接口测试指南
+# 灵思·AI学伴 - 接口测试完整指南
 
-> 本文档面向测试人员，详细描述后端所有 API 接口的请求方式、参数和响应格式。
+> 版本：v2.0 | 适用对象：测试人员 | 最后更新：2026-06-24
 
 ---
 
-## 一、基本信息
+## 一、文档概述
 
-### 1.1 环境信息
-| 项目 | 内容 |
-|------|------|
-| 项目名 | 灵思·AI学伴 |
-| 基础地址 | `http://localhost:8080` |
+本文档覆盖灵思·AI学伴项目所有 **后端 API 接口** 及 **外部 AI 服务接口**，用于指导测试人员进行全面的接口测试。
+
+### 1.1 测试环境
+
+| 项目 | 值 |
+|------|-----|
+| 后端服务地址 | `http://localhost:8080` |
+| 管理后台地址 | `http://localhost:5173` |
+| Dify AI 服务 | `http://localhost:9000`（可选） |
 | API 前缀 | `/api` |
+| 统一响应格式 | `{ code, message, data }` |
 | 认证方式 | JWT Bearer Token |
-| 文档格式 | Swagger / OpenAPI 3.0 |
 
-### 1.2 统一响应格式
-
-所有接口返回统一的 JSON 结构：
+### 1.2 统一响应结构
 
 ```json
-{
-  "code": 200,        // 状态码：200=成功，其他=失败
-  "message": "操作成功",  // 提示信息
-  "data": { ... }     // 具体数据（可能为 null）
-}
+// 成功响应
+{ "code": 200, "message": "操作成功", "data": { ... } }
+
+// 失败响应
+{ "code": 400, "message": "参数错误", "data": null }
+{ "code": 401, "message": "未登录或Token已过期", "data": null }
+{ "code": 403, "message": "无权限", "data": null }
+{ "code": 500, "message": "服务器内部错误", "data": null }
 ```
 
-### 1.3 分页响应格式
-
-分页接口返回 `PageResult`，结构如下：
+### 1.3 分页响应结构
 
 ```json
 {
   "code": 200,
   "message": "操作成功",
   "data": {
-    "total": 100,       // 总记录数
-    "current": 1,       // 当前页码
-    "size": 10,         // 每页条数
-    "records": [ ... ]  // 当前页数据列表
-  }
-}
-```
-
-### 1.4 状态码说明
-| 状态码 | 含义 |
-|-------|------|
-| 200 | 请求成功 |
-| 400 | 参数错误（如必填字段为空） |
-| 401 | 未登录或 Token 已过期 |
-| 403 | 无权限访问 |
-| 500 | 服务端异常 |
-
-### 1.5 认证方式
-
-需要鉴权的接口需要在请求头中携带 Token：
-
-```
-Authorization: Bearer <登录时获取的token>
-```
-
-**测试步骤：**
-1. 调用登录接口获取 Token
-2. 将 Token 添加到请求头
-3. 访问其他需鉴权的接口
-
----
-
-## 二、接口分类总览
-
-| 模块 | 分组标签 | 基础路径 |
-|------|---------|---------|
-| [认证管理](#21-认证管理) | 认证管理 | `/api/auth` |
-| [管理员认证](#22-管理员认证) | 管理员认证 | `/api/admin` |
-| [用户管理](#23-用户管理) | 用户管理 | `/api/users` |
-| [技能管理](#24-技能管理) | 技能管理 | `/api/skills` |
-| [学习记录管理](#25-学习记录管理) | 学习记录管理 | `/api/study-records` |
-| [简历评估管理](#26-简历评估管理) | 简历评估管理 | `/api/resumes` |
-| [订单管理](#27-订单管理) | 订单管理 | `/api/orders` |
-| [AI配置管理](#28-ai配置管理) | AI配置管理 | `/api/ai/configs` |
-| [仪表盘](#29-仪表盘) | 仪表盘 | `/api/dashboard` |
-
----
-
-## 三、接口详情
-
-### 2.1 认证管理
-
-#### POST `/api/auth/register` — 用户注册
-
-**请求头：** 无（无需鉴权）
-
-**请求体（JSON）：**
-```json
-{
-  "username": "testuser",       // 必填，3-20个字符
-  "password": "123456",         // 必填，6-30个字符
-  "nickname": "测试用户",       // 选填，1-20个字符
-  "email": "test@example.com",  // 选填，邮箱格式
-  "phone": "13800138000"        // 选填，11位手机号
-}
-```
-
-**成功响应（200）：**
-```json
-{
-  "code": 200,
-  "message": "注册成功",
-  "data": {
-    "id": 1,
-    "username": "testuser",
-    "email": "test@example.com",
-    "phone": "13800138000",
-    "nickname": "测试用户",
-    "avatar": null,
-    "role": "user",
-    "status": 1,
-    "createTime": "2026-06-24 10:00:00"
+    "total": 100,
+    "current": 1,
+    "size": 10,
+    "records": [ ... ]
   }
 }
 ```
 
 ---
 
-#### POST `/api/auth/login` — 用户登录
+## 二、认证管理接口（Auth）
 
-**请求头：** 无（无需鉴权）
+### 2.1 用户注册
 
-**请求体（JSON）：**
-```json
-{
-  "username": "testuser",   // 必填
-  "password": "123456"      // 必填
-}
-```
+- **URL：** `POST /api/auth/register`
+- **鉴权：** ❌ 无需
+- **请求体：**
+  ```json
+  {
+    "username": "testuser",       // 必填，3-20个字符
+    "password": "123456",         // 必填，6-30个字符
+    "nickname": "测试用户",       // 选填
+    "email": "test@example.com",  // 选填，邮箱格式
+    "phone": "13800138000"        // 选填，11位手机号
+  }
+  ```
+- **成功响应：** `{ code: 200, message: "注册成功", data: { id, username, nickname, email, phone, avatar, role, status, createTime } }`
+- **测试用例：** 正常注册 / 重复用户名 / 空必填字段 / 密码过短 / 邮箱格式错误
 
-**成功响应（200）：**
-```json
-{
-  "code": 200,
-  "message": "登录成功",
-  "data": {
-    "token": "eyJhbGciOiJIUzI1NiJ9...",
-    "user": {
-      "id": 1,
-      "username": "testuser",
-      "nickname": "测试用户",
-      "email": "test@example.com",
-      "phone": "13800138000",
-      "avatar": null,
-      "role": "user",
-      "status": 1,
-      "createTime": "2026-06-24 10:00:00"
+### 2.2 用户登录
+
+- **URL：** `POST /api/auth/login`
+- **鉴权：** ❌ 无需
+- **请求体：**
+  ```json
+  { "username": "testuser", "password": "123456" }
+  ```
+- **成功响应：**
+  ```json
+  {
+    "code": 200,
+    "message": "登录成功",
+    "data": {
+      "token": "eyJhbGciOiJIUzI1NiJ9...",
+      "user": { "id": 1, "username": "testuser", "nickname": "测试用户", "email": "test@example.com", "phone": "13800138000", "avatar": null, "role": "user", "status": 1, "createTime": "2026-06-24T10:00:00" }
     }
   }
-}
-```
+  ```
+- **测试用例：** 正确账号密码 / 错误密码 / 不存在的用户 / 空字段
 
-**测试要点：**
-- 登录成功后会返回 JWT Token，后续请求需携带此 Token
-- Token 有效期默认为 1 天
+### 2.3 管理员登录
 
----
+- **URL：** `POST /api/auth/admin/login`
+- **鉴权：** ❌ 无需
+- **请求体/响应：** 同 2.2 用户登录
 
-#### POST `/api/auth/logout` — 用户登出
+### 2.4 用户登出
 
-**请求头：** 需要 Bearer Token
-
-**请求体：** 无
-
-**成功响应（200）：**
-```json
-{
-  "code": 200,
-  "message": "登出成功",
-  "data": null
-}
-```
+- **URL：** `POST /api/auth/logout`
+- **鉴权：** ✅ 需要 Token
+- **响应：** `{ code: 200, message: "登出成功", data: null }`
 
 ---
 
-#### POST `/api/auth/admin/login` — 管理员登录
+## 三、管理员认证接口（Admin）
 
-与用户登录接口功能相同，专为管理前端提供的兼容路径。
+### 3.1 管理员登录
+
+- **URL：** `POST /api/admin/login`
+- **鉴权：** ❌ 无需
+- **说明：** 与 `/api/auth/login` 功能一致，专为管理后台提供
+
+### 3.2 获取管理员信息
+
+- **URL：** `GET /api/admin/info`
+- **鉴权：** ✅ 需要 Token
+- **响应：** `{ code: 200, message: "操作成功", data: { id, username, nickname, email, phone, avatar, role, status, createTime } }`
 
 ---
 
-### 2.2 管理员认证
+## 四、用户管理接口（User）
 
-#### POST `/api/admin/login` — 管理员登录
+### 4.1 获取当前登录用户信息
 
-与 `/api/auth/login` 功能一致。
+- **URL：** `GET /api/users/me`
+- **鉴权：** ✅ 需要 Token
+- **响应：** 返回当前登录用户的 `UserVO` 对象
+
+### 4.2 修改当前用户密码
+
+- **URL：** `PUT /api/users/me/password`
+- **鉴权：** ✅ 需要 Token
+- **请求体：**
+  ```json
+  { "oldPassword": "123456", "newPassword": "654321" }
+  ```
+- **测试用例：** 正确旧密码 / 旧密码错误 / 新密码过短
+
+### 4.3 获取指定用户信息
+
+- **URL：** `GET /api/users/{id}`
+- **鉴权：** ✅ 需要 Token
+- **路径参数：** `id` (Long) - 用户ID
+- **测试用例：** 存在的用户 / 不存在的用户 / 非数字ID
+
+### 4.4 更新用户信息
+
+- **URL：** `PUT /api/users/{id}`
+- **鉴权：** ✅ 需要 Token
+- **请求体：**
+  ```json
+  { "nickname": "新昵称", "email": "new@test.com", "phone": "13900139000" }
+  ```
+- **测试用例：** 更新自己资料 / 更新他人资料（权限） / 邮箱格式错误
+
+### 4.5 分页查询用户列表
+
+- **URL：** `GET /api/users` 或 `GET /api/users/list`
+- **鉴权：** ✅ 需要 Token
+- **查询参数：**
+  | 参数 | 类型 | 默认值 | 说明 |
+  |------|------|--------|------|
+  | current | int | 1 | 当前页码 |
+  | size | int | 10 | 每页条数 |
+  | keyword | string | - | 搜索用户名/昵称 |
+
+### 4.6 删除用户
+
+- **URL：** `DELETE /api/users/{id}`
+- **鉴权：** ✅ 需要 Token
+- **路径参数：** `id` (Long)
 
 ---
 
-#### GET `/api/admin/info` — 获取管理员信息
+## 五、技能管理接口（Skill）
 
-**请求头：** 需要 Bearer Token
+### 5.1 新增技能
 
-**成功响应（200）：**
-```json
-{
-  "code": 200,
-  "message": "操作成功",
-  "data": {
-    "id": 1,
-    "username": "admin",
-    "nickname": "管理员",
-    "role": "admin",
-    ...
+- **URL：** `POST /api/skills`
+- **鉴权：** ✅ 需要 Token
+- **请求体：**
+  ```json
+  {
+    "name": "Java基础",       // 必填
+    "category": "后端开发",   // 必填
+    "description": "Java语言基础语法和面向对象编程",
+    "level": 1               // 1-5，对应入门到专家
   }
-}
-```
+  ```
+
+### 5.2 更新技能
+
+- **URL：** `PUT /api/skills/{id}`
+- **鉴权：** ✅ 需要 Token
+
+### 5.3 删除技能
+
+- **URL：** `DELETE /api/skills/{id}`
+- **鉴权：** ✅ 需要 Token
+
+### 5.4 获取技能详情
+
+- **URL：** `GET /api/skills/{id}`
+- **鉴权：** ✅ 需要 Token
+
+### 5.5 分页查询技能列表
+
+- **URL：** `GET /api/skills`
+- **鉴权：** ✅ 需要 Token
+- **查询参数：** current, size, keyword
+
+### 5.6 获取技能树（全量）
+
+- **URL：** `GET /api/skills/tree`
+- **鉴权：** ✅ 需要 Token
+- **查询参数：** category（选填，按分类筛选）
+- **响应：** 返回技能列表，前端按 category 分组转为树形结构
+
+### 技能等级说明
+| 等级值 | 标签 | 说明 |
+|--------|------|------|
+| 1 | 入门 | 基础概念和简单使用 |
+| 2 | 基础 | 能独立完成基础开发 |
+| 3 | 进阶 | 掌握核心原理 |
+| 4 | 高级 | 能解决复杂问题 |
+| 5 | 专家 | 深入原理、性能优化 |
+
+### Mock 测试数据（12条记录）
+涵盖分类：`前端开发` / `后端开发` / `数据库` / `运维部署` / `架构设计` / `工具`
 
 ---
 
-### 2.3 用户管理
+## 六、学习记录管理接口（StudyRecord）
 
-#### GET `/api/users/me` — 获取当前登录用户信息
+### 6.1 新增学习记录
 
-**请求头：** 需要 Bearer Token
-
-**成功响应（200）：**
-```json
-{
-  "code": 200,
-  "message": "操作成功",
-  "data": {
-    "id": 1,
-    "username": "testuser",
-    "nickname": "测试用户",
-    "email": "test@example.com",
-    "phone": "13800138000",
-    "avatar": null,
-    "role": "user",
-    "status": 1,
-    "createTime": "2026-06-24 10:00:00"
+- **URL：** `POST /api/study-records`
+- **鉴权：** ✅ 需要 Token
+- **请求体：**
+  ```json
+  {
+    "userId": 1,
+    "content": "学习了Java基础语法",
+    "duration": 60,
+    "type": "practice"
   }
-}
-```
+  ```
+- **学习类型枚举：** `reading`（阅读）/ `practice`（练习）/ `video`（视频）/ `quiz`（测验）/ `coding`（编程）/ `discussion`（讨论）
+
+### 6.2 更新学习记录
+
+- **URL：** `PUT /api/study-records/{id}`
+- **鉴权：** ✅ 需要 Token
+
+### 6.3 删除学习记录
+
+- **URL：** `DELETE /api/study-records/{id}`
+- **鉴权：** ✅ 需要 Token
+
+### 6.4 获取学习记录详情
+
+- **URL：** `GET /api/study-records/{id}`
+- **鉴权：** ✅ 需要 Token
+
+### 6.5 分页查询学习记录
+
+- **URL：** `GET /api/study-records/list`
+- **鉴权：** ✅ 需要 Token
+- **查询参数：**
+  | 参数 | 类型 | 默认值 | 说明 |
+  |------|------|--------|------|
+  | current | int | 1 | 当前页码 |
+  | size | int | 10 | 每页条数 |
+  | userId | Long | - | 选填，按用户筛选 |
+
+### Mock 测试数据（12条记录）
+涵盖不同用户（张三~黄十四）和不同学习类型（JavaScript、Vue3、Python、Spring Boot 等）
 
 ---
 
-#### PUT `/api/users/me/password` — 修改当前用户密码
-
-**请求头：** 需要 Bearer Token
-
-**请求体（JSON）：**
-```json
-{
-  "oldPassword": "123456",    // 必填，旧密码
-  "newPassword": "654321"     // 必填，6-30个字符，新密码
-}
-```
-
----
-
-#### GET `/api/users/{id}` — 获取指定用户信息
-
-**请求头：** 需要 Bearer Token
-
-**路径参数：**
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| id   | Long | 用户ID |
-
----
-
-#### PUT `/api/users/{id}` — 更新用户信息
-
-**请求头：** 需要 Bearer Token
-
-**路径参数：** `id` (Long)
-
-**请求体（JSON）：**
-```json
-{
-  "nickname": "新昵称",
-  "email": "new@example.com",
-  "phone": "13900139000"
-}
-```
-
----
-
-#### GET `/api/users` 或 `/api/users/list` — 分页查询用户列表
-
-**请求头：** 需要 Bearer Token
-
-**查询参数：**
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| current | int | 1 | 当前页码 |
-| size    | int | 10 | 每页条数 |
-| keyword | string | - | 搜索关键词（用户名/昵称） |
-
----
-
-#### DELETE `/api/users/{id}` — 删除用户
-
-**请求头：** 需要 Bearer Token
-
-**路径参数：** `id` (Long)
-
----
-
-### 2.4 技能管理
-
-#### POST `/api/skills` — 新增技能
-
-**请求头：** 需要 Bearer Token
-
-**请求体（JSON）：**
-```json
-{
-  "name": "Java基础",         // 必填
-  "category": "后端开发",     // 必填
-  "description": "Java语言基础",
-  "level": 1,
-  "parentId": null
-}
-```
-
----
-
-#### PUT `/api/skills/{id}` — 更新技能
-
-**请求头：** 需要 Bearer Token
-
----
-
-#### DELETE `/api/skills/{id}` — 删除技能
-
-**请求头：** 需要 Bearer Token
-
----
-
-#### GET `/api/skills/{id}` — 获取技能详情
-
-**请求头：** 需要 Bearer Token
-
----
-
-#### GET `/api/skills` — 分页查询技能列表
-
-**查询参数：**
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| current | int | 1 | 当前页码 |
-| size    | int | 10 | 每页条数 |
-| keyword | string | - | 搜索关键词 |
-
----
-
-#### GET `/api/skills/tree` — 获取技能树（全量）
-
-**请求头：** 需要 Bearer Token
-
-**查询参数：**
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| category | string | 选填，按分类筛选 |
-
----
-
-### 2.5 学习记录管理
-
-#### POST `/api/study-records` — 新增学习记录
-
-**请求头：** 需要 Bearer Token
-
-**请求体（JSON）：**
-```json
-{
-  "userId": 1,
-  "skillId": 1,
-  "duration": 60,
-  "content": "学习了Java基础语法"
-}
-```
-
----
-
-#### PUT `/api/study-records/{id}` — 更新学习记录
-
-#### DELETE `/api/study-records/{id}` — 删除学习记录
-
-#### GET `/api/study-records/{id}` — 获取学习记录详情
-
-#### GET `/api/study-records/list` — 分页查询学习记录
-
-**查询参数：**
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| current | int | 1 | 当前页码 |
-| size    | int | 10 | 每页条数 |
-| userId  | Long | - | 选填，按用户筛选 |
-
----
-
-### 2.6 简历评估管理
-
-#### POST `/api/resumes` — 创建简历评估记录
-
-**请求头：** 需要 Bearer Token
-
-**请求体（JSON）：**
-```json
-{
-  "userId": 1,
-  "content": "简历文本内容或Markdown格式"
-}
-```
-
----
-
-#### PUT `/api/resumes/{id}` — 更新简历评估记录
-
-#### DELETE `/api/resumes/{id}` — 删除简历评估记录
-
-#### GET `/api/resumes/{id}` — 获取简历评估详情
-
-#### GET `/api/resumes/user/{userId}` — 获取用户的所有简历评估
-
-#### GET `/api/resumes/list` — 分页查询简历评估
-
-**查询参数：**
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| current | int | 1 | 当前页码 |
-| size    | int | 10 | 每页条数 |
-| userId  | Long | - | 选填，按用户筛选 |
-
----
-
-### 2.7 订单管理
-
-#### POST `/api/orders` — 新增订单
-
-**请求头：** 需要 Bearer Token
-
-**请求体（JSON）：**
-```json
-{
-  "userId": 1,
-  "product": "灵思·AI学伴季卡",
-  "amount": 299,
-  "status": "pending"
-}
-```
-
----
-
-#### PUT `/api/orders/{id}` — 更新订单
-
-#### DELETE `/api/orders/{id}` — 删除订单
-
-#### GET `/api/orders/{id}` — 获取订单详情
-
-#### GET `/api/orders` — 分页查询订单列表
-
-**查询参数：**
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| current | int | 1 | 当前页码 |
-| size    | int | 10 | 每页条数 |
-| keyword | string | - | 搜索关键词 |
-| status  | string | - | 筛选状态：pending/paid/completed/cancelled |
-
----
-
-### 2.8 AI配置管理
-
-#### POST `/api/ai/configs` — 新增AI配置
-
-**请求头：** 需要 Bearer Token
-
-**请求体（JSON）：**
-```json
-{
-  "name": "Dify配置",
-  "apiKey": "app-xxx",
-  "endpoint": "http://localhost/v1",
-  "model": "gpt-4",
-  "config": {}
-}
-```
-
----
-
-#### PUT `/api/ai/configs/{id}` — 更新AI配置
-
-#### DELETE `/api/ai/configs/{id}` — 删除AI配置
-
-#### GET `/api/ai/configs/{id}` — 获取AI配置详情
-
-#### GET `/api/ai/configs` — 分页查询AI配置列表
-
-**查询参数：**
-| 参数 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| current | int | 1 | 当前页码 |
-| size    | int | 10 | 每页条数 |
-| keyword | string | - | 搜索关键词 |
-
-#### GET `/api/ai/configs/stats` — 获取AI统计信息
-
----
-
-### 2.9 仪表盘
-
-#### GET `/api/dashboard/stats` — 获取仪表盘统计数据
-
-**请求头：** 需要 Bearer Token
-
-**成功响应（200）：**
-```json
-{
-  "code": 200,
-  "message": "操作成功",
-  "data": {
-    "totalUsers": 128,
-    "totalLearningHours": 4560,
-    "aiInteractions": 8920,
-    "activeUsers": 45
+## 七、简历评估管理接口（Resume）
+
+### 7.1 创建简历评估
+
+- **URL：** `POST /api/resumes`
+- **鉴权：** ✅ 需要 Token
+- **请求体：**
+  ```json
+  {
+    "userId": 1,
+    "title": "Java后端开发简历",
+    "content": "简历文本内容...",
+    "evaluation": "评估结果文本...",
+    "score": 85,
+    "strengths": "1. 项目经验丰富\n2. 技术栈全面",
+    "suggestions": "1. 增加开源项目\n2. 补充系统设计经验",
+    "status": "completed"
   }
-}
-```
+  ```
+- **状态枚举：** `pending`（待评估）/ `evaluating`（评估中）/ `completed`（已完成）/ `failed`（评估失败）
 
-| 字段 | 类型 | 说明 |
+### 7.2 更新简历评估
+
+- **URL：** `PUT /api/resumes/{id}`
+- **鉴权：** ✅ 需要 Token
+
+### 7.3 删除简历评估
+
+- **URL：** `DELETE /api/resumes/{id}`
+- **鉴权：** ✅ 需要 Token
+
+### 7.4 获取简历评估详情
+
+- **URL：** `GET /api/resumes/{id}`
+- **鉴权：** ✅ 需要 Token
+
+### 7.5 获取用户的所有简历评估
+
+- **URL：** `GET /api/resumes/user/{userId}`
+- **鉴权：** ✅ 需要 Token
+
+### 7.6 分页查询简历评估
+
+- **URL：** `GET /api/resumes/list`
+- **鉴权：** ✅ 需要 Token
+- **查询参数：** current, size, userId
+
+---
+
+## 八、订单管理接口（Order）
+
+### 8.1 新增订单
+
+- **URL：** `POST /api/orders`
+- **鉴权：** ✅ 需要 Token
+- **请求体：**
+  ```json
+  {
+    "userId": 1,
+    "product": "灵思·AI学伴季卡",
+    "amount": 299,
+    "status": "pending"
+  }
+  ```
+
+### 8.2 更新订单
+
+- **URL：** `PUT /api/orders/{id}`
+- **鉴权：** ✅ 需要 Token
+
+### 8.3 删除订单
+
+- **URL：** `DELETE /api/orders/{id}`
+- **鉴权：** ✅ 需要 Token
+
+### 8.4 获取订单详情
+
+- **URL：** `GET /api/orders/{id}`
+- **鉴权：** ✅ 需要 Token
+
+### 8.5 分页查询订单列表
+
+- **URL：** `GET /api/orders`
+- **鉴权：** ✅ 需要 Token
+- **查询参数：**
+  | 参数 | 类型 | 默认值 | 说明 |
+  |------|------|--------|------|
+  | current | int | 1 | 当前页码 |
+  | size | int | 10 | 每页条数 |
+  | keyword | string | - | 搜索订单号/用户 |
+  | status | string | - | 筛选：pending/paid/completed/cancelled |
+
+### 订单状态枚举
+| 值 | 标签 | 说明 |
+|----|------|------|
+| pending | 待支付 | 等待用户支付 |
+| paid | 已支付 | 支付完成 |
+| completed | 已完成 | 订单完成 |
+| cancelled | 已取消 | 订单取消 |
+
+### Mock 测试数据（5条记录）
+| ID | 用户 | 产品 | 金额 | 状态 |
+|----|------|------|------|------|
+| 1001 | 张三 | 灵思·AI学伴季卡 | ¥299 | paid |
+| 1002 | 李四 | 灵思·AI学伴月卡 | ¥99 | pending |
+| 1003 | 王五 | VIP年卡 | ¥999 | completed |
+| 1004 | 赵六 | 灵思·AI学伴季卡 | ¥299 | cancelled |
+| 1005 | 钱七 | 灵思·AI学伴月卡 | ¥99 | paid |
+
+---
+
+## 九、AI配置管理接口（AIConfig）
+
+### 9.1 新增AI配置
+
+- **URL：** `POST /api/ai/configs`
+- **鉴权：** ✅ 需要 Token
+- **请求体：**
+  ```json
+  {
+    "name": "Dify智能问答",
+    "apiKey": "app-xxxxxxxx",
+    "endpoint": "http://localhost:9000/v1",
+    "model": "gpt-4",
+    "enabled": true,
+    "config": {}
+  }
+  ```
+
+### 9.2 更新AI配置
+
+- **URL：** `PUT /api/ai/configs/{id}`
+- **鉴权：** ✅ 需要 Token
+
+### 9.3 删除AI配置
+
+- **URL：** `DELETE /api/ai/configs/{id}`
+- **鉴权：** ✅ 需要 Token
+
+### 9.4 获取AI配置详情
+
+- **URL：** `GET /api/ai/configs/{id}`
+- **鉴权：** ✅ 需要 Token
+
+### 9.5 分页查询AI配置列表
+
+- **URL：** `GET /api/ai/configs`
+- **鉴权：** ✅ 需要 Token
+- **查询参数：** current, size, keyword
+
+### 9.6 获取AI统计信息
+
+- **URL：** `GET /api/ai/configs/stats` 或 `GET /api/ai/stats`
+- **鉴权：** ✅ 需要 Token
+- **响应示例：**
+  ```json
+  {
+    "code": 200,
+    "message": "操作成功",
+    "data": {
+      "totalRequests": 12580,
+      "successRate": 98.5,
+      "avgResponseTime": 320,
+      "todayRequests": 285
+    }
+  }
+  ```
+
+---
+
+## 十、仪表盘接口（Dashboard）
+
+### 10.1 获取仪表盘统计数据
+
+- **URL：** `GET /api/dashboard/stats`
+- **鉴权：** ✅ 需要 Token
+- **响应示例：**
+  ```json
+  {
+    "code": 200,
+    "message": "操作成功",
+    "data": {
+      "totalUsers": 1250,
+      "totalLearningHours": 1280,
+      "aiInteractions": 3560,
+      "activeUsers": 860
+    }
+  }
+  ```
+
+### 10.2 获取用户增长数据（前端预留接口）
+
+- **URL：** `GET /api/dashboard/user-growth`
+- **鉴权：** ✅ 需要 Token
+- **说明：** 当前为预留接口，未完全实现，前端使用 Mock 数据兜底
+
+### 10.3 获取学习统计（前端预留接口）
+
+- **URL：** `GET /api/dashboard/learning-stats`
+- **鉴权：** ✅ 需要 Token
+- **说明：** 当前为预留接口，未完全实现，前端使用 Mock 数据兜底
+
+---
+
+## 十一、移动端专用接口
+
+以下接口通过移动端 `HttpClient` 封装类调用，与后端 REST API 一致，统一通过 `Constants.BASE_URL`（`http://10.0.2.2:8080`）访问。
+
+| 接口 | HTTP方法 | 说明 |
+|------|---------|------|
+| `/api/auth/admin/login` | POST | 移动端登录 |
+| `/api/auth/register` | POST | 移动端注册 |
+| `/api/users/me` | GET | 获取当前用户信息 |
+| `/api/users/{id}` | PUT | 编辑个人资料 |
+| `/api/users/me/password` | PUT | 修改密码 |
+| `/api/skills/tree` | GET | 获取技能树 |
+| `/api/study-records/list` | GET | 学习记录列表 |
+| `/api/study-records` | POST | 新增学习记录 |
+| `/api/resumes` | POST | 创建简历评估 |
+| `/api/resumes/user/{userId}` | GET | 获取我的简历评估 |
+| `/api/resumes/{id}` | GET | 获取评估详情 |
+| `/api/resumes/{id}` | DELETE | 删除评估记录 |
+| `/api/dashboard/stats` | GET | 首页统计数据 |
+
+---
+
+## 十二、外部服务接口 - Dify AI 平台
+
+### 12.1 AI 智能聊天
+
+- **服务地址：** `DifyApi.ets` 中配置
+- **URL：** `POST {BASE_URL}/chat-messages`
+- **鉴权：** API Key (Bearer Token)
+- **请求体：**
+  ```json
+  {
+    "query": "你好，请介绍一下你自己",
+    "conversation_id": "",
+    "response_mode": "blocking",
+    "user": "student-001",
+    "inputs": {}
+  }
+  ```
+- **响应：**
+  ```json
+  {
+    "answer": "你好！我是AI助手...",
+    "conversation_id": "abc-xxx-xxx",
+    "message_id": "msg-xxx",
+    "created_at": 1234567890
+  }
+  ```
+- **功能：** 多轮对话（通过 conversation_id 维持上下文）、Markdown 渲染、深度思考过程展示（可折叠）
+- **测试要点：** 首次对话 / 多轮对话上下文连续 / 空消息 / 超长消息 / 快速连续发送 / API Key 错误 / 服务不可达
+
+### 12.2 简历评估
+
+- **服务地址：** `ResumeDifyApi.ets` 中配置
+- **URL：** `POST {BASE_URL}/chat-messages`（使用独立的 Dify App）
+- **鉴权：** 独立 API Key
+- **请求体：**
+  ```json
+  {
+    "query": "简历文本内容...",
+    "response_mode": "blocking",
+    "user": "app-user",
+    "inputs": {}
+  }
+  ```
+- **响应解析结构（Dify 返回的 `answer` 中为 JSON）：**
+  ```json
+  {
+    "score": 85,
+    "summary": "整体评价...",
+    "strengths": ["项目经验丰富", "技术栈全面"],
+    "weaknesses": ["缺乏分布式经验"],
+    "suggestions": ["增加微服务项目", "补充性能优化经验"],
+    "improvedVersion": "优化后的简历..."
+  }
+  ```
+- **测试要点：** 完整简历评估 / 空内容 / 内容过短 / 评估失败处理
+
+---
+
+## 十三、完整接口速查表
+
+### 13.1 无需鉴权接口
+
+| 方法 | 路径 | 说明 |
 |------|------|------|
-| totalUsers | Long | 总用户数 |
-| totalLearningHours | Long | 总学习时长（分钟） |
-| aiInteractions | Long | AI交互次数 |
-| activeUsers | Long | 活跃用户数 |
+| POST | `/api/auth/register` | 用户注册 |
+| POST | `/api/auth/login` | 用户登录 |
+| POST | `/api/auth/admin/login` | 管理员登录 |
+| POST | `/api/admin/login` | 管理后台登录 |
+
+### 13.2 需要鉴权接口（需携带 Bearer Token）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/auth/logout` | 用户登出 |
+| GET | `/api/admin/info` | 获取管理员信息 |
+| GET | `/api/users/me` | 获取当前用户信息 |
+| PUT | `/api/users/me/password` | 修改密码 |
+| GET | `/api/users/{id}` | 获取用户信息 |
+| PUT | `/api/users/{id}` | 更新用户信息 |
+| GET | `/api/users` | 用户列表（分页） |
+| GET | `/api/users/list` | 用户列表（兼容） |
+| DELETE | `/api/users/{id}` | 删除用户 |
+| POST | `/api/skills` | 新增技能 |
+| PUT | `/api/skills/{id}` | 更新技能 |
+| DELETE | `/api/skills/{id}` | 删除技能 |
+| GET | `/api/skills/{id}` | 技能详情 |
+| GET | `/api/skills` | 技能列表（分页） |
+| GET | `/api/skills/tree` | 技能树（全量） |
+| POST | `/api/study-records` | 新增学习记录 |
+| PUT | `/api/study-records/{id}` | 更新学习记录 |
+| DELETE | `/api/study-records/{id}` | 删除学习记录 |
+| GET | `/api/study-records/{id}` | 学习记录详情 |
+| GET | `/api/study-records/list` | 学习记录列表（分页） |
+| POST | `/api/resumes` | 创建简历评估 |
+| PUT | `/api/resumes/{id}` | 更新简历评估 |
+| DELETE | `/api/resumes/{id}` | 删除简历评估 |
+| GET | `/api/resumes/{id}` | 简历评估详情 |
+| GET | `/api/resumes/user/{userId}` | 用户的简历列表 |
+| GET | `/api/resumes/list` | 简历评估列表（分页） |
+| POST | `/api/orders` | 新增订单 |
+| PUT | `/api/orders/{id}` | 更新订单 |
+| DELETE | `/api/orders/{id}` | 删除订单 |
+| GET | `/api/orders/{id}` | 订单详情 |
+| GET | `/api/orders` | 订单列表（分页） |
+| POST | `/api/ai/configs` | 新增AI配置 |
+| PUT | `/api/ai/configs/{id}` | 更新AI配置 |
+| DELETE | `/api/ai/configs/{id}` | 删除AI配置 |
+| GET | `/api/ai/configs/{id}` | AI配置详情 |
+| GET | `/api/ai/configs` | AI配置列表（分页） |
+| GET | `/api/ai/configs/stats` | AI统计信息 |
+| GET | `/api/ai/stats` | AI统计（兼容） |
+| GET | `/api/dashboard/stats` | 仪表盘统计 |
+| GET | `/api/dashboard/user-growth` | 用户增长（预留） |
+| GET | `/api/dashboard/learning-stats` | 学习统计（预留） |
+
+### 13.3 外部 AI 服务接口
+
+| 服务 | 接入位置 | 用途 | 鉴权方式 |
+|------|---------|------|---------|
+| Dify Chat | `DifyApi.ets` | AI智能对话 | Dify API Key |
+| Dify Resume | `ResumeDifyApi.ets` | 简历AI评估 | Dify API Key（独立App） |
 
 ---
 
-## 四、测试流程建议
+## 十四、测试数据清单
 
-### 4.1 冒烟测试流程
+### 14.1 用户测试数据
 
-```
-1. 用户注册      POST /api/auth/register
-2. 用户登录      POST /api/auth/login        → 获取 Token
-3. 获取用户信息   GET  /api/users/me          (带 Token)
-4. 获取仪表盘统计 GET  /api/dashboard/stats    (带 Token)
-5. 技能分页查询   GET  /api/skills             (带 Token)
-6. 用户登出      POST /api/auth/logout        (带 Token)
-```
-
-### 4.2 功能测试流程
-
-**用户模块：** 注册 → 登录 → 获取信息 → 修改密码 → 更新资料 → 查询列表 → 删除（管理员）
-
-**技能模块：** 新增 → 查询详情 → 更新 → 分页查询 → 获取技能树 → 删除
-
-**学习记录模块：** 新增 → 查询详情 → 更新 → 分页查询 → 删除
-
-**简历评估模块：** 创建 → 查询详情 → 更新 → 按用户查询 → 分页查询 → 删除
-
-**订单模块：** 新增 → 查询详情 → 更新 → 分页查询（含状态筛选） → 删除
-
-**AI配置模块：** 新增 → 查询详情 → 更新 → 分页查询 → 获取统计 → 删除
-
----
-
-## 五、测试数据建议
-
-### 5.1 用户测试数据
 | 场景 | 用户名 | 密码 | 预期结果 |
 |------|--------|------|---------|
-| 正常注册 | test_001 | 123456 | 注册成功，返回用户信息 |
-| 重复用户名 | test_001 | 123456 | 注册失败，提示用户名已存在 |
-| 空用户名 | "" | 123456 | 参数校验失败，400错误 |
-| 密码过短 | test_002 | 123 | 参数校验失败，400错误 |
-| 正常登录 | test_001 | 123456 | 登录成功，返回Token |
-| 错误密码 | test_001 | wrong | 登录失败，401错误 |
-| 不存在的用户 | no_exist | 123456 | 登录失败，401错误 |
+| 正常注册 | `test_001` | `123456` | 注册成功 |
+| 重复用户名 | `test_001` | `123456` | 返回错误提示 |
+| 空用户名 | `` | `123456` | 400参数校验失败 |
+| 密码过短 | `test_002` | `123` | 400参数校验失败 |
+| 正常登录 | `test_001` | `123456` | 返回Token |
+| 错误密码 | `test_001` | `wrong` | 401认证失败 |
+| 不存在的用户 | `not_exist` | `123456` | 401认证失败 |
 
-### 5.2 技能测试数据
-| 场景 | 测试内容 | 预期结果 |
-|------|---------|---------|
-| 新增技能 | name="Java基础", category="后端开发" | 创建成功 |
-| 技能树查询 | 无过滤条件 | 返回所有技能树结构 |
-| 按分类查询 | category="后端开发" | 返回对应分类的技能列表 |
+### 14.2 管理后台 Mock 管理员
 
-### 5.3 订单状态说明
-| 状态值 | 含义 |
-|--------|------|
-| pending | 待支付 |
-| paid    | 已支付 |
-| completed | 已完成 |
-| cancelled | 已取消 |
+| 账号 | 密码 | 说明 |
+|------|------|------|
+| admin | admin123 | 预设管理员（需数据库支持） |
+| 任意用户 | - | 前端支持 Mock 模式直接登录 |
 
----
+### 14.3 技能 Mock 数据分类
 
-## 六、常见错误排查
-
-| 问题现象 | 可能原因 | 解决方法 |
-|---------|---------|---------|
-| 401 Unauthorized | Token 缺失或已过期 | 重新登录获取新 Token |
-| 403 Forbidden | 用户权限不足 | 使用管理员账号操作 |
-| 400 Bad Request | 请求参数格式错误 | 对照接口文档检查参数 |
-| 500 Internal Server Error | 服务端异常 | 查看后端日志排查 |
-| 接口返回 404 | 请求路径错误 | 检查 URL 路径是否匹配 |
-| 数据库连接失败 | MySQL 未启动或配置错误 | 检查 application.yml 配置 |
+| 分类 | 技能数 | 技能名称 |
+|------|--------|---------|
+| 前端开发 | 3 | JavaScript基础 / Vue3框架 / TypeScript / React框架 |
+| 后端开发 | 2 | Python基础 / Spring Boot |
+| 数据库 | 2 | MySQL数据库 / Redis缓存 |
+| 运维部署 | 2 | Docker容器 / Linux运维 |
+| 架构设计 | 1 | 微服务架构 |
+| 工具 | 1 | Git版本控制 |
 
 ---
 
-## 七、Swagger 在线文档
+## 十五、测试建议流程
 
-启动后端服务后，可通过以下地址访问 Swagger 在线 API 文档：
+### 15.1 冒烟测试（按顺序执行）
 
-- **Swagger UI：** http://localhost:8080/swagger-ui.html
-- **OpenAPI JSON：** http://localhost:8080/v3/api-docs
+```mermaid
+graph LR
+  A[用户注册] --> B[用户登录]
+  B --> C[获取当前用户]
+  C --> D[仪表盘统计]
+  D --> E[技能列表查询]
+  E --> F[用户登出]
+```
 
-在 Swagger 页面中可以：
-- 查看所有接口的详细说明
-- 在线调试接口（需要先获取 Token）
-- 查看数据模型定义
+### 15.2 分模块完整测试
+
+1. **认证模块：** 注册 → 登录 → 登出 → 重复注册 → 错误登录
+2. **用户模块：** 获取信息 → 修改密码 → 更新资料 → 列表查询 → 删除
+3. **技能模块：** 新增 → 详情 → 更新 → 分页查询 → 树形查询 → 删除
+4. **学习记录：** 新增 → 详情 → 更新 → 分页查询 → 删除
+5. **简历评估：** 创建 → 详情 → 更新 → 按用户查询 → 分页 → 删除
+6. **订单模块：** 新增 → 详情 → 更新 → 状态筛选 → 搜索 → 删除
+7. **AI配置：** 新增 → 详情 → 更新 → 列表 → 统计 → 删除
+8. **仪表盘：** 统计数据验证
+
+### 15.3 异常场景测试
+
+- 请求头不携带 Token
+- 使用过期/伪造的 Token
+- 请求参数类型错误
+- 请求体缺少必填字段
+- 操作不存在的资源 ID
+- 分页参数越界
+- 并发请求（多次点击提交）
+
+---
+
+## 十六、Swagger 在线文档
+
+启动后端服务后访问：
+
+| 地址 | 说明 |
+|------|------|
+| `http://localhost:8080/swagger-ui.html` | Swagger UI 交互式文档 |
+| `http://localhost:8080/v3/api-docs` | OpenAPI JSON 格式 |
+
+Swagger 页面支持在线调试所有接口，需先通过登录接口获取 Token。
+
+---
+
+## 十七、常见问题
+
+| 问题 | 原因 | 解决 |
+|------|------|------|
+| 401 Unauthorized | Token 缺失/过期 | 重新登录获取 Token |
+| 403 Forbidden | 权限不足 | 使用管理员账号 |
+| 400 Bad Request | 参数校验失败 | 检查参数格式 |
+| 500 Server Error | 服务端异常 | 查看后端日志 |
+| 404 Not Found | 路径错误/资源不存在 | 检查 URL 路径 |
+| 连接超时 | 服务未启动/端口错误 | 检查服务状态 |
+| Dify 接口 401 | API Key 错误 | 检查 Dify 配置 |
+| Dify 接口 404 | 地址/端口错误 | 检查 BASE_URL |
