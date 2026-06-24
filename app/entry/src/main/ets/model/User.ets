@@ -12,6 +12,14 @@ export interface RegisterRequest {
   phone?: string
 }
 
+export interface RegisterBody {
+  username: string
+  password: string
+  nickname: string
+  email: string
+  phone: string
+}
+
 export interface LoginResponse {
   token: string
   user: UserInfo
@@ -49,4 +57,16 @@ export interface StudyRecordItem {
   type: string
   status: number
   createTime: string
+}
+
+export interface UpdateUserRequest {
+  nickname?: string
+  email?: string
+  phone?: string
+  avatar?: string
+}
+
+export interface ChangePasswordRequest {
+  oldPassword: string
+  newPassword: string
 }

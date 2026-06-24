@@ -95,12 +95,14 @@ struct Login {
         .justifyContent(FlexAlign.Center)
       }
       .width('100%')
-      .background(
-        new LinearGradient([{ color: '#6366F1' }, { color: '#818CF8' }, { color: '#A5B4FC' }])
-      )
+      .linearGradient({
+        direction: GradientDirection.Bottom,
+        colors: [['#6366F1', 0.0], ['#818CF8', 0.5], ['#A5B4FC', 1.0]]
+      })
 
-      // ===== 表单区域 =====
-      Column({ space: 20 }) {
+      // ===== 表单区域（可滚动）=====
+      Scroll() {
+        Column({ space: 20 }) {
         // 用户名输入
         Column({ space: 8 }) {
           Text('用户名')
@@ -144,8 +146,7 @@ struct Login {
             .height(20)
             .mark({
               strokeColor: '#fff',
-              size: 12,
-              style: CheckMarkStyle.CIRCLE
+              size: 12
             })
           Text('记住密码')
             .fontSize(14)
@@ -197,7 +198,10 @@ struct Login {
       .padding({ left: 32, right: 32, top: 32, bottom: 40 })
       .background('#fff')
       .borderRadius({ topLeft: 24, topRight: 24 })
-      .layoutWeight(1)
+    }
+    .layoutWeight(1)
+    .scrollBar(BarState.Off)
+    .edgeEffect(EdgeEffect.Spring)
     }
     .width('100%')
     .height('100%')

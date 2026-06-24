@@ -15,10 +15,23 @@ struct Profile {
 
   async loadUserInfo() {
     try {
-      this.userInfo = await TokenUtil.getUserInfo(getContext(this))
+      this.userInfo = (await TokenUtil.getUserInfo(getContext(this))) || null
     } catch (error) {
       console.error('加载用户信息失败:', error)
     }
+  }
+
+  getRoleLabel(role: string): string {
+    if (role === 'admin') {
+      return '管理员'
+    }
+    if (role === 'teacher') {
+      return '教师'
+    }
+    if (role === 'student') {
+      return '学生'
+    }
+    return role
   }
 
   async handleLogout() {
@@ -35,6 +48,37 @@ struct Profile {
 
   build() {
     Column() {
+      // ===== 顶部导航栏 =====
+      Row() {
+        Row() {
+          Text('←')
+            .fontSize(28)
+            .fontColor('#fff')
+            .fontWeight(FontWeight.Bold)
+            .onClick(() => { router.back() })
+        }
+        .width(44)
+        .height(44)
+        .justifyContent(FlexAlign.Center)
+
+        Text('个人中心')
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#fff')
+          .layoutWeight(1)
+
+        Blank()
+      }
+      .width('100%')
+      .height(56)
+      .padding({ left: 16, right: 16 })
+      .position({ x: 0, y: 0 })
+      .zIndex(1)
+      .linearGradient({
+        direction: GradientDirection.Bottom,
+        colors: [['#6366F1', 0.0], ['#818CF8', 1.0]]
+      })
+
       // ===== 顶部用户信息 =====
       Column({ space: 12 }) {
         Column() {
@@ -47,9 +91,10 @@ struct Profile {
         .width(80)
         .height(80)
         .borderRadius(40)
-        .background(
-          new LinearGradient([{ color: '#6366F1' }, { color: '#818CF8' }])
-        )
+        .linearGradient({
+          direction: GradientDirection.Bottom,
+          colors: [['#6366F1', 0.0], ['#818CF8', 1.0]]
+        })
         .justifyContent(FlexAlign.Center)
         .margin({ bottom: 4 })
 
@@ -72,17 +117,25 @@ struct Profile {
       }
       .width('100%')
       .padding({ top: 60, bottom: 30 })
-      .background(
-        new LinearGradient([{ color: '#6366F1' }, { color: '#818CF8' }])
-      )
+      .linearGradient({
+        direction: GradientDirection.Bottom,
+        colors: [['#6366F1', 0.0], ['#818CF8', 1.0]]
+      })
+      .margin({ top: 56 })
 
       // ===== 菜单列表 =====
       Column({ space: 0 }) {
-        this.createMenuItem('修改密码', 'security', () => {})
+        this.createMenuItem('修改密码', 'security', () => {
+          router.pushUrl({ url: 'pages/ChangePassword' })
+        })
         this.createDivider()
-        this.createMenuItem('个人资料', 'profile', () => {})
+        this.createMenuItem('个人资料', 'profile', () => {
+          router.pushUrl({ url: 'pages/EditProfile' })
+        })
         this.createDivider()
-        this.createMenuItem('系统设置', 'settings', () => {})
+        this.createMenuItem('系统设置', 'settings', () => {
+          // 系统设置（预留）
+        })
       }
       .width('90%')
       .backgroundColor('#fff')
@@ -97,11 +150,10 @@ struct Profile {
           .fontWeight(FontWeight.Bold)
           .fontColor('#333')
 
-        if (this.userInfo) {
+        if (this.userInfo && this.userInfo.username) {
           this.createInfoRow('用户名', this.userInfo.username)
           if (this.userInfo.role) {
-            const roleMap: Record<string, string> = { admin: '管理员', teacher: '教师', student: '学生' }
-            this.createInfoRow('角色', roleMap[this.userInfo.role] || this.userInfo.role)
+            this.createInfoRow('角色', this.getRoleLabel(this.userInfo.role))
           }
           if (this.userInfo.createTime) {
             this.createInfoRow('注册时间', this.userInfo.createTime.substring(0, 10))

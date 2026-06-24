@@ -6,6 +6,10 @@
     "pages/Register",
     "pages/Profile",
     "pages/Home",
-    "pages/Chat"
+    "pages/Chat",
+    "pages/SkillTree",
+    "pages/StudyRecords",
+    "pages/EditProfile",
+    "pages/ChangePassword"
   ]
 }

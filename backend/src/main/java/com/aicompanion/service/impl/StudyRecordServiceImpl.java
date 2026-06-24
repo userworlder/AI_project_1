@@ -71,7 +71,7 @@ public class StudyRecordServiceImpl implements StudyRecordService {
     }
 
     @Override
-    public PageResult<StudyRecordVO> getStudyRecords(Integer current, Integer size) {
+    public PageResult<StudyRecordVO> getStudyRecords(Integer current, Integer size, Long userId) {
         if (current == null || current < 1) {
             current = 1;
         }
@@ -81,6 +81,11 @@ public class StudyRecordServiceImpl implements StudyRecordService {
 
         Page<StudyRecord> page = new Page<>(current, size);
         LambdaQueryWrapper<StudyRecord> wrapper = new LambdaQueryWrapper<>();
+
+        if (userId != null) {
+            wrapper.eq(StudyRecord::getUserId, userId);
+        }
+
         wrapper.orderByDesc(StudyRecord::getCreateTime);
         
         Page<StudyRecord> studyRecordPage = studyRecordMapper.selectPage(page, wrapper);

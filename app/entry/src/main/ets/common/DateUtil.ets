@@ -55,4 +55,14 @@ export class DateUtil {
       return `${monthStr}-${dayStr} ${timeStr}`
     }
   }
+
+  /**
+   * 将 ISO 日期字符串格式化为 "YYYY-MM-DD HH:mm" 格式
+   * @param dateStr ISO 日期字符串，如 "2024-01-15T14:30:00"
+   * @returns 格式化后的日期时间字符串，如 "2024-01-15 14:30"
+   */
+  static formatDateTime(dateStr: string): string {
+    if (!dateStr) return ''
+    return dateStr.replace('T', ' ').substring(0, 16)
+  }
 }

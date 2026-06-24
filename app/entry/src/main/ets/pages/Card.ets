@@ -1,3 +1,5 @@
+import router from '@ohos.router'
+
 @Entry
 @Component
 struct Card {
@@ -8,6 +10,37 @@ struct Card {
 
   build() {
     Column() {
+      // ===== 顶部导航栏 =====
+      Row() {
+        Row() {
+          Text('←')
+            .fontSize(28)
+            .fontColor('#fff')
+            .fontWeight(FontWeight.Bold)
+            .onClick(() => { router.back() })
+        }
+        .width(44)
+        .height(44)
+        .justifyContent(FlexAlign.Center)
+
+        Text('我的名片')
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#fff')
+          .layoutWeight(1)
+
+        Blank()
+      }
+      .width('100%')
+      .height(56)
+      .padding({ left: 16, right: 16 })
+      .position({ x: 0, y: 0 })
+      .zIndex(1)
+      .linearGradient({
+        direction: GradientDirection.Bottom,
+        colors: [['#6366F1', 0.0], ['#818CF8', 1.0]]
+      })
+
       // 顶部渐变背景
       Column() {
         Column({ space: 16 }) {
@@ -65,9 +98,11 @@ struct Card {
         .justifyContent(FlexAlign.Center)
       }
       .width('100%')
-      .background(
-        new LinearGradient([{ color: '#6366F1' }, { color: '#818CF8' }])
-      )
+      .linearGradient({
+        direction: GradientDirection.Bottom,
+        colors: [['#6366F1', 0.0], ['#818CF8', 1.0]]
+      })
+      .margin({ top: 56 })
 
       // 简介区域
       Column({ space: 16 }) {

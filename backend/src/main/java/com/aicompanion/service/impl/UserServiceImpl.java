@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.aicompanion.common.exception.BusinessException;
 import com.aicompanion.common.response.PageResult;
 import com.aicompanion.mapper.UserMapper;
+import com.aicompanion.model.dto.ChangePasswordDTO;
 import com.aicompanion.model.dto.RegisterDTO;
 import com.aicompanion.model.dto.UpdateUserDTO;
 import com.aicompanion.model.entity.User;
@@ -116,6 +117,31 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException("用户不存在");
         }
         userMapper.deleteById(id);
+    }
+
+    @Override
+    public UserVO getUserVOByUsername(String username) {
+        User user = this.getUserByUsername(username);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        return convertToVO(user);
+    }
+
+    @Override
+    public void changePassword(String username, ChangePasswordDTO dto) {
+        User user = this.getUserByUsername(username);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        // 验证原密码
+        if (!passwordEncoder.matches(dto.getOldPassword(), user.getPassword())) {
+            throw new BusinessException("原密码错误");
+        }
+        // 加密并保存新密码
+        user.setPassword(passwordEncoder.encode(dto.getNewPassword()));
+        userMapper.updateById(user);
+        log.info("用户 {} 密码修改成功", username);
     }
 
     @Override

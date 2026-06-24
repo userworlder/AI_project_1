@@ -14,5 +14,5 @@ public interface StudyRecordService {
 
     StudyRecordVO getStudyRecordById(Long id);
 
-    PageResult<StudyRecordVO> getStudyRecords(Integer current, Integer size);
+    PageResult<StudyRecordVO> getStudyRecords(Integer current, Integer size, Long userId);
 }

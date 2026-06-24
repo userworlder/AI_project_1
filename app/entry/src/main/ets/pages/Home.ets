@@ -75,63 +75,84 @@ struct Home {
       }
       .width('100%')
       .padding({ left: 24, right: 24 })
-      .background(
-        new LinearGradient([{ color: '#6366F1' }, { color: '#818CF8' }])
-      )
+      .linearGradient({
+        direction: GradientDirection.Bottom,
+        colors: [['#6366F1', 0.0], ['#818CF8', 1.0]]
+      })
 
-      // ===== 统计卡片 =====
-      if (!this.statsLoading && this.stats) {
-        Column({ space: 12 }) {
-          Row({ space: 12 }) {
-            this.createStatCard('总用户', this.stats.totalUsers.toString(), '#6366F1', 'rgba(99,102,241,0.1)')
-            this.createStatCard('学习时长', `${this.stats.totalLearningHours}h`, '#14B8A6', 'rgba(20,184,166,0.1)')
+      // ===== 统计卡片和功能菜单（可滚动）=====
+      Scroll() {
+        Column() {
+          if (!this.statsLoading && this.stats) {
+            Column({ space: 12 }) {
+              Row({ space: 12 }) {
+                this.createStatCard('总用户', this.stats.totalUsers.toString(), '#6366F1', 'rgba(99,102,241,0.1)')
+                this.createStatCard('学习时长', `${this.stats.totalLearningHours}h`, '#14B8A6', 'rgba(20,184,166,0.1)')
+              }
+              .width('100%')
+
+              Row({ space: 12 }) {
+                this.createStatCard('AI交互', this.stats.aiInteractions.toString(), '#10B981', 'rgba(16,185,129,0.1)')
+                this.createStatCard('活跃用户', this.stats.activeUsers.toString(), '#F59E0B', 'rgba(245,158,11,0.1)')
+              }
+              .width('100%')
+            }
+            .padding({ left: 24, right: 24, top: 20 })
+          }
+
+          // ===== 功能菜单 =====
+          Column({ space: 16 }) {
+            Row().width('100%').height(16)
+
+            Text('功能入口')
+              .fontSize(16)
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#333')
+              .width('100%')
+              .padding({ left: 4 })
+
+            this.createMenuItem(
+              'AI 智能对话',
+              '与大模型 AI 对话，解答学习问题',
+              '#6366F1',
+              () => { router.pushUrl({ url: 'pages/Chat' }) }
+            )
+
+            this.createMenuItem(
+              '我的名片',
+              '编辑个人资料和展示信息',
+              '#14B8A6',
+              () => { router.pushUrl({ url: 'pages/Card' }) }
+            )
+
+            this.createMenuItem(
+              '个人中心',
+              '查看账号信息与系统设置',
+              '#F59E0B',
+              () => { router.pushUrl({ url: 'pages/Profile' }) }
+            )
+
+            this.createMenuItem(
+              '技能树',
+              '浏览学习技能体系',
+              '#8B5CF6',
+              () => { router.pushUrl({ url: 'pages/SkillTree' }) }
+            )
+
+            this.createMenuItem(
+              '学习记录',
+              '查看学习历史记录',
+              '#EC4899',
+              () => { router.pushUrl({ url: 'pages/StudyRecords' }) }
+            )
           }
           .width('100%')
-
-          Row({ space: 12 }) {
-            this.createStatCard('AI交互', this.stats.aiInteractions.toString(), '#10B981', 'rgba(16,185,129,0.1)')
-            this.createStatCard('活跃用户', this.stats.activeUsers.toString(), '#F59E0B', 'rgba(245,158,11,0.1)')
-          }
-          .width('100%')
+          .padding({ left: 24, right: 24 })
         }
-        .padding({ left: 24, right: 24, top: 20 })
       }
-
-      // ===== 功能菜单 =====
-      Column({ space: 16 }) {
-        Row().width('100%').height(16)
-
-        Text('功能入口')
-          .fontSize(16)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#333')
-          .width('100%')
-          .padding({ left: 4 })
-
-        this.createMenuItem(
-          'AI 智能对话',
-          '与大模型 AI 对话，解答学习问题',
-          '#6366F1',
-          () => { router.pushUrl({ url: 'pages/Chat' }) }
-        )
-
-        this.createMenuItem(
-          '我的名片',
-          '编辑个人资料和展示信息',
-          '#14B8A6',
-          () => { router.pushUrl({ url: 'pages/Card' }) }
-        )
-
-        this.createMenuItem(
-          '个人中心',
-          '查看账号信息与系统设置',
-          '#F59E0B',
-          () => { router.pushUrl({ url: 'pages/Profile' }) }
-        )
-      }
-      .width('100%')
-      .padding({ left: 24, right: 24 })
       .layoutWeight(1)
+      .scrollBar(BarState.Off)
+      .edgeEffect(EdgeEffect.Spring)
 
       // ===== 底部导航 =====
       Row({ space: 8 }) {

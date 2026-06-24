@@ -107,12 +107,14 @@ struct Register {
       }
       .width('100%')
       .padding({ top: 60, bottom: 30 })
-      .background(
-        new LinearGradient([{ color: '#6366F1' }, { color: '#818CF8' }])
-      )
+      .linearGradient({
+        direction: GradientDirection.Bottom,
+        colors: [['#6366F1', 0.0], ['#818CF8', 1.0]]
+      })
 
-      // 表单区域
-      Column({ space: 16 }) {
+      // 表单区域（可滚动）
+      Scroll() {
+        Column({ space: 16 }) {
         if (this.step === 1) {
           // 第一步：账号信息
           TextInput({ placeholder: '用户名 *', text: this.username })
@@ -218,7 +220,10 @@ struct Register {
       .padding({ left: 32, right: 32, top: 32, bottom: 40 })
       .background('#fff')
       .borderRadius({ topLeft: 24, topRight: 24 })
-      .layoutWeight(1)
+    }
+    .layoutWeight(1)
+    .scrollBar(BarState.Off)
+    .edgeEffect(EdgeEffect.Spring)
     }
     .width('100%')
     .height('100%')

@@ -1,6 +1,7 @@
 package com.aicompanion.service;
 
 import com.aicompanion.common.response.PageResult;
+import com.aicompanion.model.dto.ChangePasswordDTO;
 import com.aicompanion.model.dto.RegisterDTO;
 import com.aicompanion.model.dto.UpdateUserDTO;
 import com.aicompanion.model.entity.User;
@@ -13,6 +14,10 @@ public interface UserService {
     UserVO getUserById(Long id);
 
     UserVO updateUser(Long id, UpdateUserDTO updateDTO);
+
+    UserVO getUserVOByUsername(String username);
+
+    void changePassword(String username, ChangePasswordDTO dto);
 
     PageResult<UserVO> getUsers(Integer current, Integer size, String keyword);
 

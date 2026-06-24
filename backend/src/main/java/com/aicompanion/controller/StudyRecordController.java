@@ -52,8 +52,9 @@ public class StudyRecordController {
     @GetMapping("/list")
     public Result<PageResult<StudyRecordVO>> getStudyRecords(
             @RequestParam(defaultValue = "1") Integer current,
-            @RequestParam(defaultValue = "10") Integer size) {
-        PageResult<StudyRecordVO> pageResult = studyRecordService.getStudyRecords(current, size);
+            @RequestParam(defaultValue = "10") Integer size,
+            @RequestParam(required = false) Long userId) {
+        PageResult<StudyRecordVO> pageResult = studyRecordService.getStudyRecords(current, size, userId);
         return Result.success(pageResult);
     }
 }
