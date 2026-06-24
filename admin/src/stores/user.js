@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { login } from '@/api/login'
+import { login as loginApi } from '@/api/login'
 
 export const useUserStore = defineStore('user', () => {
   // 用户信息
@@ -10,10 +10,15 @@ export const useUserStore = defineStore('user', () => {
   const token = ref(localStorage.getItem('admin_token') || null)
 
   // ========== 计算属性 ==========
-  
+
   // 判断是否已登录
   const isLoggedIn = computed(() => {
     return !!token.value
+  })
+
+  // 判断是否为模拟登录（后端未启动时的回退）
+  const isMockLogin = computed(() => {
+    return !!token.value && token.value.startsWith('mock_token_')
   })
 
   // ========== 方法函数 ==========
@@ -22,7 +27,7 @@ export const useUserStore = defineStore('user', () => {
   const login = async (formData) => {
     try {
       // 调用登录接口
-      const data = await login(formData)
+      const data = await loginApi(formData)
       
       // 存储 Token 到 state 和 localStorage
       token.value = data.token
@@ -90,6 +95,7 @@ export const useUserStore = defineStore('user', () => {
     userInfo,
     token,
     isLoggedIn,
+    isMockLogin,
     login,
     setUserInfo,
     logout,

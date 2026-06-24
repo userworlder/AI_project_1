@@ -1,8 +1,17 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useUserStore } from '@/stores/user'
 import { Plus, Edit, Delete, Search, Refresh } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getUserList, createUser, updateUser, deleteUser } from '@/api/user'
+
+// ========== Mock 数据兜底 ==========
+const mockUserList = [
+  { id: 1, username: 'admin', nickname: '管理员', email: 'admin@example.com', role: 'admin', createTime: '2024-01-01 00:00:00' },
+  { id: 2, username: 'zhangsan', nickname: '张三', email: 'zhangsan@example.com', role: 'student', createTime: '2024-01-15 10:30:00' },
+  { id: 3, username: 'lisi', nickname: '李四', email: 'lisi@example.com', role: 'student', createTime: '2024-01-16 14:20:00' },
+  { id: 4, username: 'wangwu', nickname: '王五', email: 'wangwu@example.com', role: 'teacher', createTime: '2024-01-17 09:15:00' }
+]
 
 // ========== 状态定义 ==========
 const tableData = ref([])
@@ -75,6 +84,13 @@ onMounted(() => {
 const fetchUserList = async () => {
   loading.value = true
   try {
+    // 模拟登录时跳过真实 API 请求
+    const userStore = useUserStore()
+    if (userStore.isMockLogin) {
+      tableData.value = mockUserList
+      pagination.value.total = mockUserList.length
+      return
+    }
     const params = {
       page: pagination.value.currentPage,
       pageSize: pagination.value.pageSize,

@@ -1,4 +1,5 @@
 <script setup>import { ref, computed, onMounted } from 'vue';
+import { useUserStore } from '@/stores/user';
 import { mockSkillList } from '@/mock/skill';
 import { getSkillTree, getSkillTreeByCategory } from '@/api/skill';
 import { Plus, Edit, Delete, Search, Refresh, Filter } from '@element-plus/icons-vue';
@@ -74,6 +75,12 @@ const list = computed(() => {
 const fetchTree = async () => {
  loading.value = true;
  try {
+ // 模拟登录时跳过真实 API 请求
+ const userStore = useUserStore()
+ if (userStore.isMockLogin) {
+ treeData.value = []
+ return
+ }
  if (filterCategory.value) {
  treeData.value = await getSkillTreeByCategory(filterCategory.value);
  }

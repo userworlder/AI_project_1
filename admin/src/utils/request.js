@@ -47,16 +47,10 @@ service.interceptors.response.use(
 
     // 401 未授权 - Token 过期或无效
     if (error.response && error.response.status === 401) {
-      // 弹出错误提示
-      ElMessage.error('授权认证失败，请重新登录')
-      
-      // 清除本地存储的 Token
+      // 只清除 Token 但不强跳，让路由守卫和组件自行处理
       import('@/utils/token').then(({ removeToken }) => {
         removeToken()
       })
-
-      // 跳转到登录页
-      window.location.href = '/login'
     }
 
     return Promise.reject(error)

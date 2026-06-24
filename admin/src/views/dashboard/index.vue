@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import * as echarts from 'echarts';
+import { useUserStore } from '@/stores/user';
 import { getDashboardStats } from '@/api/dashboard';
 import { UserFilled, Notebook, MagicStick, TrendCharts } from '@element-plus/icons-vue';
 
@@ -285,12 +286,28 @@ const renderUserGrowthChart = () => {
   });
 };
 
+// ========== Mock 数据 - 统计卡片（后端未启动时使用） ==========
+const getMockStats = () => ({
+  totalUsers: 1250,
+  totalLearningHours: 3800,
+  aiInteractions: 2800,
+  activeUsers: 860
+})
+
 // ========== 加载统计数据 ==========
 const loadStats = async () => {
+  const userStore = useUserStore()
+  // 如果是模拟登录或 token 是 mock 的，直接使用 mock 数据，避免触发 401
+  if (userStore.isMockLogin) {
+    stats.value = getMockStats()
+    return
+  }
   try {
     stats.value = await getDashboardStats();
   } catch (error) {
     console.error('加载统计数据失败:', error);
+    // API 请求失败时使用 mock 数据兜底
+    stats.value = getMockStats()
   }
 };
 

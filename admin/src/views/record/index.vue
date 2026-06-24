@@ -1,10 +1,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useUserStore } from '@/stores/user'
 import { getRecordList } from '@/api/record'
 import { Search, Refresh } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
-// ========== Mock 数据兜底 ==========
+// ========== Mock 数据兜底（与 isMockLogin 共用） ==========
 const mockRecordList = [
   { id: 1, username: '张三', skill: 'JavaScript 基础', duration: 120, score: 95, createdAt: '2024-01-15 10:30:00' },
   { id: 2, username: '李四', skill: 'Vue3 核心原理', duration: 180, score: 88, createdAt: '2024-01-16 14:20:00' },
@@ -31,10 +32,33 @@ const pagination = ref({
   total: 0
 })
 
+// ========== Mock 搜索过滤函数 ==========
+const filterMockRecords = () => {
+  let filtered = [...mockRecordList]
+  if (searchKeyword.value.trim()) {
+    const kw = searchKeyword.value.trim().toLowerCase()
+    filtered = filtered.filter(item =>
+      item.username.toLowerCase().includes(kw) ||
+      item.skill.toLowerCase().includes(kw)
+    )
+  }
+  return filtered
+}
+
 // ========== 方法函数 ==========
 const fetchRecords = async () => {
   loading.value = true
   try {
+    // 模拟登录时跳过真实 API 请求，直接使用 mock 数据
+    const userStore = useUserStore()
+    if (userStore.isMockLogin) {
+      const filtered = filterMockRecords()
+      pagination.value.total = filtered.length
+      const start = (pagination.value.currentPage - 1) * pagination.value.pageSize
+      tableData.value = filtered.slice(start, start + pagination.value.pageSize)
+      return
+    }
+
     const response = await getRecordList({
       current: pagination.value.currentPage,
       size: pagination.value.pageSize
@@ -49,14 +73,7 @@ const fetchRecords = async () => {
   } catch (error) {
     console.warn('获取学习记录失败，使用 Mock 数据:', error)
     // Mock：搜索过滤 + 分页
-    let filtered = [...mockRecordList]
-    if (searchKeyword.value.trim()) {
-      const kw = searchKeyword.value.trim().toLowerCase()
-      filtered = filtered.filter(item =>
-        item.username.toLowerCase().includes(kw) ||
-        item.skill.toLowerCase().includes(kw)
-      )
-    }
+    const filtered = filterMockRecords()
     pagination.value.total = filtered.length
     const start = (pagination.value.currentPage - 1) * pagination.value.pageSize
     tableData.value = filtered.slice(start, start + pagination.value.pageSize)

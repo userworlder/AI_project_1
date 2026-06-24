@@ -1,6 +1,21 @@
 <script setup>import { ref, onMounted } from 'vue';
+import { useUserStore } from '@/stores/user';
 import { getAiList, deleteAi, getAiStats } from '@/api/ai';
 import { Delete, Search, Refresh } from '@element-plus/icons-vue';
+
+// ========== Mock 数据兜底 ==========
+const mockAiList = [
+ { id: 1, name: '智能问答', model: 'gpt-4', enabled: true, createdAt: '2024-01-15' },
+ { id: 2, name: '代码审查', model: 'claude-3', enabled: true, createdAt: '2024-01-20' },
+ { id: 3, name: '语音识别', model: 'whisper', enabled: false, createdAt: '2024-02-01' }
+];
+const mockStats = {
+ totalRequests: 12580,
+ successRate: 98.5,
+ avgResponseTime: 320,
+ todayRequests: 285
+};
+
 const tableData = ref([]);
 const loading = ref(false);
 const searchQuery = ref('');
@@ -32,6 +47,13 @@ onMounted(() => {
 const loadConfigs = async () => {
  loading.value = true;
  try {
+ // 模拟登录时跳过真实 API 请求
+ const userStore = useUserStore()
+ if (userStore.isMockLogin) {
+ tableData.value = mockAiList;
+ pagination.value.total = mockAiList.length;
+ return
+ }
  const data = await getAiList({
  page: pagination.value.currentPage,
  size: pagination.value.pageSize,
@@ -49,6 +71,12 @@ const loadConfigs = async () => {
 };
 const loadStats = async () => {
  try {
+ // 模拟登录时跳过真实 API 请求
+ const userStore = useUserStore()
+ if (userStore.isMockLogin) {
+ stats.value = mockStats;
+ return
+ }
  stats.value = await getAiStats();
  }
  catch (error) {

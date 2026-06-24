@@ -75,6 +75,11 @@ const handleRegister = async () => {
       router.push('/login')
     } catch (error) {
       console.error('注册失败:', error)
+      // 后端未启动时给出友好提示
+      if (!error.response) {
+        ElMessage.warning('后端服务未启动，注册功能暂不可用，请稍后再试')
+        return
+      }
       const errMsg = error.response?.data?.message || error.message || '注册失败'
       ElMessage.error(errMsg)
     } finally {
