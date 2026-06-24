@@ -1,7 +1,7 @@
-# AI 伴学平台 - 后端服务
+# 灵思·AI学伴 - 后端服务
 
 ## 项目简介
-AI 伴学平台后端服务，基于 Spring Boot 3.2 + MyBatis-Plus 构建的单体应用。
+灵思·AI学伴后端服务，基于 Spring Boot 3.2 + MyBatis-Plus 构建的单体应用。
 
 ## 技术栈
 - Java 17

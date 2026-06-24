@@ -60,7 +60,7 @@ const pageTitle = computed(() => route.meta?.title || '')
             <path d="M2 17l10 5 10-5v-3L12 14 2 11v6z" fill="currentColor" opacity="0.2"/>
           </svg>
         </div>
-        <span class="logo-text">AI伴学</span>
+        <span class="logo-text">灵思·AI学伴</span>
       </div>
 
       <!-- 导航 -->

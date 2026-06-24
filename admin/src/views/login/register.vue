@@ -113,7 +113,7 @@ const goToLogin = () => {
           </svg>
         </div>
         <h1 class="title">注册账号</h1>
-        <p class="subtitle">加入 AI伴学平台</p>
+        <p class="subtitle">加入 灵思·AI学伴</p>
       </div>
 
       <!-- 表单 -->

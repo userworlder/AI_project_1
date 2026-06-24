@@ -128,7 +128,7 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   // 1. 动态设置页面标题
   const title = to.meta.title || '页面'
-  document.title = `${title} - AI伴学管理后台`
+  document.title = `${title} - 灵思·AI学伴管理后台`
 
   // 2. 判断目标路由是否需要鉴权
   const requiresAuth = to.meta.requiresAuth !== false

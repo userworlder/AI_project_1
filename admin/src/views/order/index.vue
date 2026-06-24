@@ -5,11 +5,11 @@ import { getOrderList, deleteOrder } from '@/api/order'
 
 // ========== Mock 数据兜底 ==========
 const mockOrderList = [
-  { id: 1001, username: '张三', product: 'AI伴学季卡', amount: 299, status: 'paid', createTime: '2024-01-15 10:30:00' },
-  { id: 1002, username: '李四', product: 'AI伴学月卡', amount: 99, status: 'pending', createTime: '2024-01-16 14:20:00' },
+  { id: 1001, username: '张三', product: '灵思·AI学伴季卡', amount: 299, status: 'paid', createTime: '2024-01-15 10:30:00' },
+  { id: 1002, username: '李四', product: '灵思·AI学伴月卡', amount: 99, status: 'pending', createTime: '2024-01-16 14:20:00' },
   { id: 1003, username: '王五', product: 'VIP年卡', amount: 999, status: 'completed', createTime: '2024-01-17 09:15:00' },
-  { id: 1004, username: '赵六', product: 'AI伴学季卡', amount: 299, status: 'cancelled', createTime: '2024-01-18 16:45:00' },
-  { id: 1005, username: '钱七', product: 'AI伴学月卡', amount: 99, status: 'paid', createTime: '2024-01-19 11:00:00' }
+  { id: 1004, username: '赵六', product: '灵思·AI学伴季卡', amount: 299, status: 'cancelled', createTime: '2024-01-18 16:45:00' },
+  { id: 1005, username: '钱七', product: '灵思·AI学伴月卡', amount: 99, status: 'paid', createTime: '2024-01-19 11:00:00' }
 ]
 import { Search, Delete, Refresh } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox, ElTable, ElTableColumn, ElPagination, ElInput, ElButton, ElSelect, ElOption } from 'element-plus'

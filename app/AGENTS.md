@@ -1,9 +1,9 @@
-# AGENTS.md – AI 伴学平台 HarmonyOS 开发指南
+# AGENTS.md – 灵思·AI学伴 HarmonyOS 开发指南
 
 > 本文档用于指导 AI 助手（如 Trae）为本项目生成符合规范的 ArkTS 代码。
 
 ## 项目概述
-- **项目名称**：AI 伴学与职业成长平台（HarmonyOS NEXT 版）
+- **项目名称**：灵思·AI学伴（HarmonyOS NEXT 版）
 - **开发语言**：ArkTS（TypeScript 超集）
 - **UI 框架**：ArkUI（声明式）
 - **应用模型**：Stage 模型

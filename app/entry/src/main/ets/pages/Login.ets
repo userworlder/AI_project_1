@@ -81,7 +81,7 @@ struct Login {
           .justifyContent(FlexAlign.Center)
           .margin({ bottom: 16 })
 
-          Text('AI 伴学平台')
+          Text('灵思·AI学伴')
             .fontSize(28)
             .fontWeight(FontWeight.Bold)
             .fontColor('#fff')

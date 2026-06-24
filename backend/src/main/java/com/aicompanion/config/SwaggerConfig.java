@@ -13,11 +13,11 @@ public class SwaggerConfig {
     public OpenAPI customOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("AI 伴学平台 API")
+                        .title("灵思·AI学伴 API")
                         .version("1.0.0")
-                        .description("AI 伴学平台后端接口文档")
+                        .description("灵思·AI学伴后端接口文档")
                         .contact(new Contact()
-                                .name("AI Companion")
+                                .name("LingSi AI Companion")
                                 .email("support@aicompanion.com")));
     }
 }

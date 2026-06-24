@@ -70,7 +70,7 @@ const handleLogin = async () => {
             <path d="M2 17l10 5 10-5v-3L12 14 2 11v6z" fill="currentColor" opacity="0.2"/>
           </svg>
         </div>
-        <h1 class="title">AI伴学平台</h1>
+        <h1 class="title">灵思·AI学伴</h1>
         <p class="subtitle">管理后台</p>
       </div>
 
