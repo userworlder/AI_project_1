@@ -85,6 +85,25 @@ CREATE TABLE IF NOT EXISTS `ai_config` (
     KEY `idx_create_time` (`create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI配置表';
 
+-- ========== 简历评估表 ==========
+CREATE TABLE IF NOT EXISTS `resume` (
+    `id` BIGINT AUTO_INCREMENT COMMENT '简历ID',
+    `user_id` BIGINT NOT NULL COMMENT '用户ID',
+    `title` VARCHAR(200) DEFAULT '未命名简历' COMMENT '简历标题',
+    `content` TEXT COMMENT '简历文本内容',
+    `evaluation` TEXT COMMENT 'AI评估结果(JSON)',
+    `score` INT DEFAULT NULL COMMENT '总体评分',
+    `strengths` TEXT COMMENT '优势总结',
+    `suggestions` TEXT COMMENT '优化建议',
+    `status` VARCHAR(20) DEFAULT 'pending' COMMENT '状态：pending待评估 evaluating评估中 completed已完成 failed失败',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted` INT DEFAULT 0 COMMENT '逻辑删除',
+    PRIMARY KEY (`id`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='简历评估表';
+
 -- ========== 初始数据 ==========
 INSERT INTO `user` (`username`, `password`, `nickname`, `email`, `status`) VALUES
 ('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH', '管理员', 'admin@aicompanion.com', 1),

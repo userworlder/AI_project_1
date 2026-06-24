@@ -4,12 +4,17 @@
 export class ChatMessage {
   role: string = 'user' // 'user' 或 'assistant'
   content: string = ''
+  reasoningContent: string = '' // 深度思考过程（来自 Dify reasoning_content）
+  reasoningVisible: boolean = false // 思考过程显隐状态（默认隐藏）
   timestamp: number = 0
 
-  constructor(role: string, content: string, timestamp: number) {
+  constructor(role: string, content: string, timestamp: number, reasoningContent?: string) {
     this.role = role
     this.content = content
     this.timestamp = timestamp
+    if (reasoningContent) {
+      this.reasoningContent = reasoningContent
+    }
   }
 }
 
@@ -34,6 +39,7 @@ export class DifyResponse {
   conversation_id: string = ''
   message_id: string = ''
   created_at: number = 0
+  reasoning_content?: string // 深度思考过程（可能不存在）
 
   constructor(answer: string, conversation_id: string, message_id: string, created_at: number) {
     this.answer = answer

@@ -39,13 +39,8 @@ export class ChatViewModel {
         this.conversationId = response.conversation_id
       }
 
-      // 4. 添加 AI 回复到列表
-      // TODO: 取消下面注释以测试 Markdown 渲染（开发时可用）
-      // const testResponse = '这是一个**加粗文本**的示例\n\n这是`行内代码`的示例\n\n普通文本和**加粗**以及`代码`混合使用'
-      // const aiMessage = new ChatMessage('assistant', testResponse, Date.now())
-      
-      // 使用真实 API 返回的内容
-      const aiMessage = new ChatMessage('assistant', response.answer, Date.now())
+      // 4. 添加 AI 回复到列表（包含深度思考过程）
+      const aiMessage = new ChatMessage('assistant', response.answer, Date.now(), response.reasoning_content)
       this.messages.push(aiMessage)
     } catch (error) {
       // 5. 错误处理：添加错误提示消息

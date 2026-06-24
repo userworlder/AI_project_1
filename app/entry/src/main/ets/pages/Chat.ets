@@ -153,7 +153,7 @@ struct Chat {
    */
   @Builder
   buildUserMessageBubble(message: ChatMessage) {
-    Column() {
+    Column({ space: 4 }) {
       // 消息内容
       Text(message.content)
         .fontSize(14)
@@ -161,11 +161,11 @@ struct Chat {
         .lineHeight(22)
         .padding({ left: 12, right: 12, top: 10, bottom: 10 })
 
-      // 时间
+      // 时间（在气泡外面，但仍在Column内）
       Text(DateUtil.formatFriendly(message.timestamp))
         .fontSize(12)
-        .fontColor('#999999')
-        .margin({ top: 4 })
+        .fontColor('rgba(255,255,255,0.7)')
+        .margin({ top: 2 })
     }
     .alignItems(HorizontalAlign.End)
     .backgroundColor('#409EFF')
@@ -175,26 +175,76 @@ struct Chat {
   }
 
   /**
-   * 构建 AI 消息气泡（使用 MarkdownRenderer，练习二）
+   * 构建 AI 消息气泡（含可折叠的深度思考过程）
    */
   @Builder
   buildAiMessageBubble(message: ChatMessage) {
-    Column() {
-      // 消息内容（使用 Markdown 渲染器）
+    Column({ space: 4 }) {
+      // ===== 深度思考过程（可折叠，默认隐藏） =====
+      if (message.reasoningContent && message.reasoningContent.length > 0) {
+        this.buildReasoningSection(message)
+      }
+
+      // ===== 消息内容（使用 Markdown 渲染器） =====
       MarkdownRenderer({ content: message.content })
         .padding({ left: 12, right: 12, top: 10, bottom: 10 })
 
-      // 时间
+      // 时间（在气泡外面，但仍在Column内）
       Text(DateUtil.formatFriendly(message.timestamp))
         .fontSize(12)
         .fontColor('#999999')
-        .margin({ top: 4 })
+        .margin({ top: 2 })
     }
     .alignItems(HorizontalAlign.Start)
     .backgroundColor('#F4F4F5')
     .borderRadius(12)
     .padding({ left: 12, right: 12, top: 8, bottom: 8 })
     .constraintSize({ maxWidth: '70%' })
+  }
+
+  /**
+   * 构建深度思考过程区域（可折叠）
+   */
+  @Builder
+  buildReasoningSection(message: ChatMessage) {
+    Column({ space: 6 }) {
+      // 切换按钮：标签
+      Row() {
+        Text('💭')
+          .fontSize(13)
+
+        Text('深度思考')
+          .fontSize(13)
+          .fontColor('#8B5CF6')
+          .fontWeight(FontWeight.Medium)
+
+        Blank()
+
+        Text(message.reasoningVisible ? '收起 ▲' : '展开 ▼')
+          .fontSize(11)
+          .fontColor('#A78BFA')
+      }
+      .width('100%')
+      .padding({ left: 12, right: 12, top: 8, bottom: 8 })
+      .backgroundColor('#F3F0FF')
+      .borderRadius(8)
+      .onClick(() => {
+        message.reasoningVisible = !message.reasoningVisible
+      })
+
+      // 思考内容（展开时显示）
+      if (message.reasoningVisible) {
+        Text(message.reasoningContent)
+          .fontSize(13)
+          .fontColor('#666')
+          .fontStyle(FontStyle.Italic)
+          .lineHeight(20)
+          .padding({ left: 12, right: 12, top: 4, bottom: 8 })
+          .width('100%')
+      }
+    }
+    .width('100%')
+    .padding({ top: 4, bottom: 4 })
   }
 
   /**

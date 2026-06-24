@@ -1,6 +1,6 @@
 import { HttpClient } from '../common/HttpClient'
 import type { PageResult } from '../model/PageResult'
-import type { StudyRecordItem } from '../model/User'
+import type { StudyRecordItem, CreateStudyRecordRequest } from '../model/User'
 
 /**
  * 学习记录相关 API
@@ -24,5 +24,14 @@ export class StudyRecordApi {
       url += `&userId=${userId}`
     }
     return HttpClient.get<PageResult<StudyRecordItem>>(context, url)
+  }
+
+  /**
+   * 创建学习记录
+   * @param context 上下文
+   * @param data 学习记录数据
+   */
+  static async createStudyRecord(context: Context, data: CreateStudyRecordRequest): Promise<StudyRecordItem> {
+    return HttpClient.post<StudyRecordItem>(context, '/api/study-records', data)
   }
 }

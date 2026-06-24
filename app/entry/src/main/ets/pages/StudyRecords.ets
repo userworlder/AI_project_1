@@ -15,7 +15,26 @@ struct StudyRecords {
   @State loadingMore: boolean = false
   @State errorMsg: string = ''
 
+  // 记录学习 Dialog 状态
+  @State showDialog: boolean = false
+  @State newContent: string = ''
+  @State newDuration: string = '30'
+  @State newType: string = 'practice'
+  @State saving: boolean = false
+  @State dialogError: string = ''
+  private userId: number = 0
+
+  private typeOptions: string[] = ['reading', 'practice', 'video', 'quiz', 'coding', 'discussion']
+
   aboutToAppear() {
+    this.loadUserAndRecords()
+  }
+
+  async loadUserAndRecords() {
+    const userInfo: UserInfo | undefined = await TokenUtil.getUserInfo(getContext(this))
+    if (userInfo) {
+      this.userId = userInfo.id
+    }
     this.loadRecords(1, true)
   }
 
@@ -27,9 +46,7 @@ struct StudyRecords {
     }
 
     try {
-      const userInfo: UserInfo | undefined = await TokenUtil.getUserInfo(getContext(this))
-      const userId = userInfo?.id
-      const result = await StudyRecordApi.getStudyRecords(getContext(this), page, 10, userId)
+      const result = await StudyRecordApi.getStudyRecords(getContext(this), page, 10, this.userId)
       if (reset) {
         this.records = result.records
       } else {
@@ -50,6 +67,53 @@ struct StudyRecords {
     if (!this.loadingMore && this.records.length < this.total) {
       this.loadRecords(this.current + 1, false)
     }
+  }
+
+  openCreateDialog() {
+    this.newContent = ''
+    this.newDuration = '30'
+    this.newType = 'practice'
+    this.dialogError = ''
+    this.showDialog = true
+  }
+
+  closeDialog() {
+    this.showDialog = false
+    this.dialogError = ''
+  }
+
+  async handleCreateRecord() {
+    if (!this.newContent.trim()) {
+      this.dialogError = '请输入学习内容'
+      return
+    }
+    const durationNum = parseInt(this.newDuration)
+    if (isNaN(durationNum) || durationNum <= 0) {
+      this.dialogError = '请输入有效的学习时长'
+      return
+    }
+
+    this.saving = true
+    this.dialogError = ''
+    try {
+      await StudyRecordApi.createStudyRecord(getContext(this), {
+        userId: this.userId,
+        content: this.newContent.trim(),
+        duration: durationNum,
+        type: this.newType
+      })
+      this.closeDialog()
+      // 刷新列表
+      this.loadRecords(1, true)
+    } catch (error) {
+      this.dialogError = (error as Error).message || '保存失败'
+    } finally {
+      this.saving = false
+    }
+  }
+
+  selectType(type: string) {
+    this.newType = type
   }
 
   getTypeColor(type: string): string {
@@ -102,6 +166,30 @@ struct StudyRecords {
         this.buildEmptyState()
       } else {
         this.buildRecordList()
+      }
+
+      // ===== 浮动添加按钮 =====
+      Row() {
+        Text('+')
+          .fontSize(28)
+          .fontColor('#fff')
+          .fontWeight(FontWeight.Bold)
+      }
+      .width(56)
+      .height(56)
+      .borderRadius(28)
+      .backgroundColor('#6366F1')
+      .shadow({ radius: 12, color: 'rgba(99,102,241,0.5)', offsetY: 4 })
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .position({ x: '80%', y: '85%' })
+      .onClick(() => {
+        this.openCreateDialog()
+      })
+
+      // ===== 创建记录 Dialog（覆盖层） =====
+      if (this.showDialog) {
+        this.buildCreateDialog()
       }
     }
     .width('100%')
@@ -191,7 +279,7 @@ struct StudyRecords {
       Text('暂无学习记录')
         .fontSize(16)
         .fontColor('#999')
-      Text('开始你的学习之旅吧！')
+      Text('点击右下角 + 开始记录')
         .fontSize(14)
         .fontColor('#ccc')
         .margin({ top: 8 })
@@ -214,7 +302,6 @@ struct StudyRecords {
           this.buildRecordCard(record)
         })
 
-        // 加载更多按钮
         if (this.records.length < this.total) {
           Button(this.loadingMore ? '加载中...' : '加载更多')
             .fontSize(14)
@@ -227,7 +314,7 @@ struct StudyRecords {
             .onClick(() => {
               this.loadMore()
             })
-          }
+        }
       }
       .width('100%')
       .padding({ left: 24, right: 24, top: 20, bottom: 24 })
@@ -239,9 +326,7 @@ struct StudyRecords {
   @Builder
   buildRecordCard(record: StudyRecordItem) {
     Column({ space: 10 }) {
-      // 第一行：类型标签 + 日期
       Row() {
-        // 类型标签
         Text(this.getTypeLabel(record.type))
           .fontSize(12)
           .fontColor('#fff')
@@ -252,14 +337,12 @@ struct StudyRecords {
 
         Blank()
 
-        // 日期
         Text(DateUtil.formatDateTime(record.createTime))
           .fontSize(12)
           .fontColor('#999')
       }
       .width('100%')
 
-      // 内容
       Text(record.content)
         .fontSize(14)
         .fontColor('#333')
@@ -268,12 +351,10 @@ struct StudyRecords {
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .width('100%')
 
-      // 分隔线
       Divider()
         .color('#F0F0F0')
         .width('100%')
 
-      // 底部：时长 + 状态
       Row() {
         Text(`⏱ ${record.duration} 分钟`)
           .fontSize(13)
@@ -292,5 +373,145 @@ struct StudyRecords {
     .backgroundColor('#fff')
     .borderRadius(16)
     .shadow({ radius: 4, color: 'rgba(0,0,0,0.04)', offsetY: 2 })
+  }
+
+  @Builder
+  buildCreateDialog() {
+    // 半透明遮罩
+    Column() {
+      // 居中表单卡片
+      Column({ space: 16 }) {
+        // 标题
+        Row() {
+          Text('记录学习')
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#333')
+          Blank()
+          Text('✕')
+            .fontSize(20)
+            .fontColor('#999')
+            .onClick(() => {
+              this.closeDialog()
+            })
+        }
+        .width('100%')
+
+        // 学习类型选择
+        Column({ space: 8 }) {
+          Text('学习类型')
+            .fontSize(14)
+            .fontColor('#666')
+            .width('100%')
+
+          Flex({ wrap: FlexWrap.Wrap }) {
+            ForEach(this.typeOptions, (type: string) => {
+              Text(this.getTypeLabel(type))
+                .fontSize(12)
+                .fontColor(this.newType === type ? '#fff' : '#666')
+                .backgroundColor(this.newType === type ? this.getTypeColor(type) : '#F5F6FA')
+                .borderRadius(16)
+                .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+                .margin({ right: 8, bottom: 8 })
+                .onClick(() => {
+                  this.selectType(type)
+                })
+            })
+          }
+          .width('100%')
+        }
+        .width('100%')
+
+        // 学习内容
+        Column({ space: 8 }) {
+          Text('学习内容')
+            .fontSize(14)
+            .fontColor('#666')
+            .width('100%')
+
+          TextArea({ text: this.newContent, placeholder: '描述你学习了什么...' })
+            .width('100%')
+            .height(100)
+            .backgroundColor('#F5F6FA')
+            .borderRadius(12)
+            .padding(12)
+            .fontSize(14)
+            .onChange((value: string) => {
+              this.newContent = value
+            })
+        }
+        .width('100%')
+
+        // 学习时长
+        Column({ space: 8 }) {
+          Text('学习时长（分钟）')
+            .fontSize(14)
+            .fontColor('#666')
+            .width('100%')
+
+          TextInput({ text: this.newDuration, placeholder: '30' })
+            .width('100%')
+            .height(44)
+            .backgroundColor('#F5F6FA')
+            .borderRadius(12)
+            .padding({ left: 16 })
+            .fontSize(16)
+            .type(InputType.Number)
+            .onChange((value: string) => {
+              this.newDuration = value
+            })
+        }
+        .width('100%')
+
+        // 错误信息
+        if (this.dialogError) {
+          Text(this.dialogError)
+            .fontSize(14)
+            .fontColor('#EF4444')
+            .width('100%')
+            .textAlign(TextAlign.Center)
+        }
+
+        // 按钮
+        Row({ space: 12 }) {
+          Button('取消')
+            .layoutWeight(1)
+            .height(44)
+            .backgroundColor('#F5F6FA')
+            .fontColor('#666')
+            .fontSize(16)
+            .borderRadius(12)
+            .onClick(() => {
+              this.closeDialog()
+            })
+
+          Button(this.saving ? '保存中...' : '保存记录')
+            .layoutWeight(1)
+            .height(44)
+            .backgroundColor('#6366F1')
+            .fontColor('#fff')
+            .fontSize(16)
+            .borderRadius(12)
+            .enabled(!this.saving)
+            .onClick(() => {
+              this.handleCreateRecord()
+            })
+        }
+        .width('100%')
+      }
+      .width('85%')
+      .padding(24)
+      .backgroundColor('#fff')
+      .borderRadius(20)
+      .shadow({ radius: 16, color: 'rgba(0,0,0,0.15)', offsetY: 8 })
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor('rgba(0,0,0,0.4)')
+    .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Center)
+    .onClick(() => {
+      this.closeDialog()
+    })
   }
 }

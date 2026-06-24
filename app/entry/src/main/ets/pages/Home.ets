@@ -145,6 +145,13 @@ struct Home {
               '#EC4899',
               () => { router.pushUrl({ url: 'pages/StudyRecords' }) }
             )
+
+            this.createMenuItem(
+              '简历评估',
+              'AI 智能分析简历，优化建议',
+              '#10B981',
+              () => { router.pushUrl({ url: 'pages/ResumeList' }) }
+            )
           }
           .width('100%')
           .padding({ left: 24, right: 24 })

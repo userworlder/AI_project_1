@@ -10,6 +10,9 @@
     "pages/SkillTree",
     "pages/StudyRecords",
     "pages/EditProfile",
-    "pages/ChangePassword"
+    "pages/ChangePassword",
+    "pages/ResumeList",
+    "pages/ResumeEditor",
+    "pages/ResumeResult"
   ]
 }

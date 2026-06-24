@@ -70,3 +70,10 @@ export interface ChangePasswordRequest {
   oldPassword: string
   newPassword: string
 }
+
+export interface CreateStudyRecordRequest {
+  userId: number
+  content: string
+  duration: number
+  type: string
+}
