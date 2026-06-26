@@ -2,6 +2,7 @@ package com.aicompanion.controller;
 
 import com.aicompanion.common.response.PageResult;
 import com.aicompanion.common.response.Result;
+import com.aicompanion.common.util.SecurityUtils;
 import com.aicompanion.model.dto.SkillDTO;
 import com.aicompanion.model.vo.SkillVO;
 import com.aicompanion.service.SkillService;
@@ -21,23 +22,26 @@ public class SkillController {
 
     private final SkillService skillService;
 
-    @Operation(summary = "新增技能")
+    @Operation(summary = "新增技能（教师/管理员）")
     @PostMapping
     public Result<SkillVO> createSkill(@Valid @RequestBody SkillDTO skillDTO) {
+        SecurityUtils.checkAdminOrTeacher();
         SkillVO skillVO = skillService.createSkill(skillDTO);
         return Result.success("新增成功", skillVO);
     }
 
-    @Operation(summary = "更新技能")
+    @Operation(summary = "更新技能（教师/管理员）")
     @PutMapping("/{id}")
     public Result<SkillVO> updateSkill(@PathVariable Long id, @Valid @RequestBody SkillDTO skillDTO) {
+        SecurityUtils.checkAdminOrTeacher();
         SkillVO skillVO = skillService.updateSkill(id, skillDTO);
         return Result.success("更新成功", skillVO);
     }
 
-    @Operation(summary = "删除技能")
+    @Operation(summary = "删除技能（教师/管理员）")
     @DeleteMapping("/{id}")
     public Result<Void> deleteSkill(@PathVariable Long id) {
+        SecurityUtils.checkAdminOrTeacher();
         skillService.deleteSkill(id);
         return Result.success("删除成功", null);
     }

@@ -39,7 +39,7 @@ public class AuthController {
     @Operation(summary = "管理员登录", description = "兼容前端 /api/admin/login 路径")
     @PostMapping("/admin/login")
     public Result<LoginVO> adminLogin(@Valid @RequestBody LoginDTO loginDTO) {
-        LoginVO loginVO = authService.login(loginDTO);
+        LoginVO loginVO = authService.adminLogin(loginDTO);
         return Result.success("登录成功", loginVO);
     }
 

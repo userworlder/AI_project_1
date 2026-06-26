@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.aicompanion.common.exception.BusinessException;
 import com.aicompanion.common.response.PageResult;
+import com.aicompanion.common.util.SecurityUtils;
 import com.aicompanion.mapper.OrderMapper;
 import com.aicompanion.model.dto.OrderDTO;
 import com.aicompanion.model.entity.Order;
@@ -26,6 +27,11 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public OrderVO createOrder(OrderDTO orderDTO) {
+        // 学生只能为自己创建订单
+        if (!SecurityUtils.isAdminOrTeacher()) {
+            orderDTO.setUserId(SecurityUtils.getCurrentUserId());
+        }
+
         Order order = new Order();
         BeanUtils.copyProperties(orderDTO, order);
         orderMapper.insert(order);
@@ -34,6 +40,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public OrderVO updateOrder(Long id, OrderDTO orderDTO) {
+        // 此接口已在 SecurityConfig 中限制为教师/管理员可调用
         Order order = orderMapper.selectById(id);
         if (order == null) {
             throw new BusinessException("订单不存在");
@@ -45,6 +52,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public void deleteOrder(Long id) {
+        // 此接口已在 SecurityConfig 中限制为教师/管理员可调用
         Order order = orderMapper.selectById(id);
         if (order == null) {
             throw new BusinessException("订单不存在");
@@ -58,6 +66,8 @@ public class OrderServiceImpl implements OrderService {
         if (order == null) {
             throw new BusinessException("订单不存在");
         }
+        // 校验数据归属：学生只能查看自己的订单
+        SecurityUtils.checkAccess(order.getUserId());
         return convertToVO(order);
     }
 
@@ -68,6 +78,11 @@ public class OrderServiceImpl implements OrderService {
 
         Page<Order> page = new Page<>(current, size);
         LambdaQueryWrapper<Order> wrapper = new LambdaQueryWrapper<>();
+
+        // 学生只能查看自己的订单
+        if (SecurityUtils.isStudent()) {
+            wrapper.eq(Order::getUserId, SecurityUtils.getCurrentUserId());
+        }
 
         if (keyword != null && !keyword.trim().isEmpty()) {
             wrapper.like(Order::getOrderNo, keyword)

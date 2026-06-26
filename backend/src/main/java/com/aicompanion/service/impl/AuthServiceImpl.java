@@ -28,21 +28,21 @@ public class AuthServiceImpl implements AuthService {
         // 查询用户
         User user = userService.getUserByUsername(loginDTO.getUsername());
         if (user == null) {
-            throw new BusinessException("用户名或密码错误");
+            throw BusinessException.unauthorized("用户名或密码错误");
         }
 
         // 验证密码
         if (!passwordEncoder.matches(loginDTO.getPassword(), user.getPassword())) {
-            throw new BusinessException("用户名或密码错误");
+            throw BusinessException.unauthorized("用户名或密码错误");
         }
 
         // 检查用户状态
         if (user.getStatus() == 0) {
-            throw new BusinessException("账号已被禁用");
+            throw BusinessException.unauthorized("账号已被禁用");
         }
 
-        // 生成 Token
-        String token = jwtUtil.generateToken(user.getUsername());
+        // 生成 Token（携带角色和用户ID，用于后续权限校验）
+        String token = jwtUtil.generateToken(user.getUsername(), user.getRole(), user.getId());
 
         // 构建返回对象
         LoginVO loginVO = new LoginVO();
@@ -52,6 +52,16 @@ public class AuthServiceImpl implements AuthService {
         BeanUtils.copyProperties(user, userVO);
         loginVO.setUser(userVO);
 
+        return loginVO;
+    }
+
+    @Override
+    public LoginVO adminLogin(LoginDTO loginDTO) {
+        LoginVO loginVO = this.login(loginDTO);
+        // 校验角色必须为 admin
+        if (loginVO.getUser() == null || !"admin".equals(loginVO.getUser().getRole())) {
+            throw BusinessException.forbidden("仅管理员可登录管理后台");
+        }
         return loginVO;
     }
 }

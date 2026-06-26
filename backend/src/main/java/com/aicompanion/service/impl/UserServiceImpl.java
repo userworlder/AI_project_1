@@ -35,7 +35,7 @@ public class UserServiceImpl implements UserService {
         wrapper.eq(User::getUsername, registerDTO.getUsername());
         User existUser = userMapper.selectOne(wrapper);
         if (existUser != null) {
-            throw new BusinessException("用户名已存在");
+            throw BusinessException.conflict("用户名已存在");
         }
 
         // 创建新用户
@@ -55,18 +55,24 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserVO getUserById(Long id) {
+        if (id == null || id <= 0) {
+            throw BusinessException.badRequest("无效的用户ID");
+        }
         User user = userMapper.selectById(id);
         if (user == null) {
-            throw new BusinessException("用户不存在");
+            throw BusinessException.notFound("用户不存在");
         }
         return convertToVO(user);
     }
 
     @Override
     public UserVO updateUser(Long id, UpdateUserDTO updateDTO) {
+        if (id == null || id <= 0) {
+            throw BusinessException.badRequest("无效的用户ID");
+        }
         User user = userMapper.selectById(id);
         if (user == null) {
-            throw new BusinessException("用户不存在");
+            throw BusinessException.notFound("用户不存在");
         }
 
         BeanUtils.copyProperties(updateDTO, user);
@@ -112,9 +118,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteUser(Long id) {
+        if (id == null || id <= 0) {
+            throw BusinessException.badRequest("无效的用户ID");
+        }
         User user = userMapper.selectById(id);
         if (user == null) {
-            throw new BusinessException("用户不存在");
+            throw BusinessException.notFound("用户不存在");
         }
         userMapper.deleteById(id);
     }
@@ -123,7 +132,7 @@ public class UserServiceImpl implements UserService {
     public UserVO getUserVOByUsername(String username) {
         User user = this.getUserByUsername(username);
         if (user == null) {
-            throw new BusinessException("用户不存在");
+            throw BusinessException.notFound("用户不存在");
         }
         return convertToVO(user);
     }
@@ -132,11 +141,15 @@ public class UserServiceImpl implements UserService {
     public void changePassword(String username, ChangePasswordDTO dto) {
         User user = this.getUserByUsername(username);
         if (user == null) {
-            throw new BusinessException("用户不存在");
+            throw BusinessException.notFound("用户不存在");
         }
         // 验证原密码
         if (!passwordEncoder.matches(dto.getOldPassword(), user.getPassword())) {
-            throw new BusinessException("原密码错误");
+            throw BusinessException.badRequest("原密码错误");
+        }
+        // 检查新密码与旧密码是否相同
+        if (passwordEncoder.matches(dto.getNewPassword(), user.getPassword())) {
+            throw BusinessException.badRequest("新密码不能与旧密码相同");
         }
         // 加密并保存新密码
         user.setPassword(passwordEncoder.encode(dto.getNewPassword()));

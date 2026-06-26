@@ -1,9 +1,11 @@
 package com.aicompanion.config;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -14,6 +16,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity   // 启用 @PreAuthorize 等方法级安全注解
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -42,14 +45,47 @@ public class SecurityConfig {
         .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // 白名单路径无需鉴权
-                .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/admin/login", "/api/admin/login", "/api/admin/register").permitAll()
+                .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/admin/login",
+                                 "/api/admin/login", "/api/admin/register").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
-                // 其他所有 /api/** 请求需要鉴权
+
+                // === 角色路径权限规则 ===
+
+                // AI配置 —— 仅管理员
+                .requestMatchers("/api/ai/configs/**").hasRole("ADMIN")
+                // 仪表盘 —— 仅管理员
+                .requestMatchers("/api/dashboard/**").hasRole("ADMIN")
+                // 管理员管理接口 —— 仅管理员
+                .requestMatchers("/api/admin/info").hasRole("ADMIN")
+
+                // 技能写入操作 —— 教师或管理员
+                .requestMatchers(HttpMethod.POST, "/api/skills/**").hasAnyRole("TEACHER", "ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/skills/**").hasAnyRole("TEACHER", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/skills/**").hasAnyRole("TEACHER", "ADMIN")
+
+                // 订单写入操作 —— 教师或管理员
+                .requestMatchers(HttpMethod.PUT, "/api/orders/**").hasAnyRole("TEACHER", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/orders/**").hasAnyRole("TEACHER", "ADMIN")
+
+                // 其他所有 /api/** 请求至少需要认证
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().authenticated()
         )
         // 添加 JWT 过滤器（在 UsernamePasswordAuthenticationFilter 之前执行）
-        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+        // 统一异常处理：所有 401/403 返回 JSON，而非 HTML
+        .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json;charset=utf-8");
+                    response.getWriter().write("{\"code\":401,\"message\":\"未登录或Token已过期\",\"data\":null}");
+                })
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.setContentType("application/json;charset=utf-8");
+                    response.getWriter().write("{\"code\":403,\"message\":\"权限不足，无法访问该资源\",\"data\":null}");
+                })
+        );
 
         return http.build();
     }

@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
-@Tag(name = "AI配置管理", description = "AI模型配置相关接口")
+@Tag(name = "AI配置管理", description = "AI模型配置相关接口（仅管理员）")
 @RestController
 @RequestMapping("/api/ai/configs")
 @RequiredArgsConstructor
@@ -65,7 +65,7 @@ public class AIConfigController {
         return Result.success(stats);
     }
 
-    @Operation(summary = "获取AI统计信息（兼容 /api/ai/stats 路径）")
+    @Operation(summary = "获取AI统计信息（兼容路径）")
     @GetMapping("/../stats")
     public Result<Map<String, Object>> getAiStatsAlt() {
         return getAiStats();

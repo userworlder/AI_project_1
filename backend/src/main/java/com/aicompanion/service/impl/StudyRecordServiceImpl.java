@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.aicompanion.common.exception.BusinessException;
 import com.aicompanion.common.response.PageResult;
+import com.aicompanion.common.util.SecurityUtils;
 import com.aicompanion.mapper.StudyRecordMapper;
 import com.aicompanion.model.dto.StudyRecordDTO;
 import com.aicompanion.model.entity.StudyRecord;
@@ -26,16 +27,20 @@ public class StudyRecordServiceImpl implements StudyRecordService {
 
     @Override
     public StudyRecordVO createStudyRecord(StudyRecordDTO studyRecordDTO) {
+        // 学生只能为自己创建学习记录
+        if (!SecurityUtils.isAdminOrTeacher()) {
+            studyRecordDTO.setUserId(SecurityUtils.getCurrentUserId());
+        }
+
         StudyRecord studyRecord = new StudyRecord();
         BeanUtils.copyProperties(studyRecordDTO, studyRecord);
-        
-        // 如果状态为空，默认为1（进行中）
+
         if (studyRecord.getStatus() == null) {
             studyRecord.setStatus(1);
         }
-        
+
         studyRecordMapper.insert(studyRecord);
-        
+
         return convertToVO(studyRecord);
     }
 
@@ -44,6 +49,12 @@ public class StudyRecordServiceImpl implements StudyRecordService {
         StudyRecord studyRecord = studyRecordMapper.selectById(id);
         if (studyRecord == null) {
             throw new BusinessException("学习记录不存在");
+        }
+        // 校验数据归属
+        SecurityUtils.checkAccess(studyRecord.getUserId());
+        // 学生修改时只能修改自己的内容，不能篡改 userId
+        if (SecurityUtils.isStudent()) {
+            studyRecordDTO.setUserId(studyRecord.getUserId());
         }
 
         BeanUtils.copyProperties(studyRecordDTO, studyRecord);
@@ -58,6 +69,8 @@ public class StudyRecordServiceImpl implements StudyRecordService {
         if (studyRecord == null) {
             throw new BusinessException("学习记录不存在");
         }
+        // 校验数据归属
+        SecurityUtils.checkAccess(studyRecord.getUserId());
         studyRecordMapper.deleteById(id);
     }
 
@@ -67,6 +80,8 @@ public class StudyRecordServiceImpl implements StudyRecordService {
         if (studyRecord == null) {
             throw new BusinessException("学习记录不存在");
         }
+        // 校验数据归属：学生只能查看自己的记录
+        SecurityUtils.checkAccess(studyRecord.getUserId());
         return convertToVO(studyRecord);
     }
 
@@ -82,14 +97,19 @@ public class StudyRecordServiceImpl implements StudyRecordService {
         Page<StudyRecord> page = new Page<>(current, size);
         LambdaQueryWrapper<StudyRecord> wrapper = new LambdaQueryWrapper<>();
 
+        // 学生只能查询自己的学习记录
+        if (SecurityUtils.isStudent()) {
+            userId = SecurityUtils.getCurrentUserId();
+        }
+
         if (userId != null) {
             wrapper.eq(StudyRecord::getUserId, userId);
         }
 
         wrapper.orderByDesc(StudyRecord::getCreateTime);
-        
+
         Page<StudyRecord> studyRecordPage = studyRecordMapper.selectPage(page, wrapper);
-        
+
         List<StudyRecordVO> voList = studyRecordPage.getRecords().stream()
                 .map(this::convertToVO)
                 .collect(Collectors.toList());

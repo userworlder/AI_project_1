@@ -1,7 +1,9 @@
 package com.aicompanion.controller;
 
+import com.aicompanion.common.exception.BusinessException;
 import com.aicompanion.common.response.PageResult;
 import com.aicompanion.common.response.Result;
+import com.aicompanion.common.util.SecurityUtils;
 import com.aicompanion.model.dto.ChangePasswordDTO;
 import com.aicompanion.model.dto.RegisterDTO;
 import com.aicompanion.model.dto.UpdateUserDTO;
@@ -46,43 +48,55 @@ public class UserController {
         return Result.success("密码修改成功", null);
     }
 
-    @Operation(summary = "获取用户信息")
+    @Operation(summary = "获取用户信息（本人或管理员）")
     @GetMapping("/{id}")
     public Result<UserVO> getUserById(@PathVariable Long id) {
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+        if (currentUserId == null) {
+            throw BusinessException.unauthorized("无法识别用户身份");
+        }
+        if (!SecurityUtils.isAdminOrTeacher() && !currentUserId.equals(id)) {
+            throw BusinessException.forbidden("无权限查看该用户信息");
+        }
         UserVO userVO = userService.getUserById(id);
         return Result.success(userVO);
     }
 
-    @Operation(summary = "更新用户信息")
+    @Operation(summary = "更新用户信息（管理员）")
     @PutMapping("/{id}")
     public Result<UserVO> updateUser(@PathVariable Long id,
                                      @Valid @RequestBody UpdateUserDTO updateDTO) {
+        SecurityUtils.checkAdmin();
         UserVO userVO = userService.updateUser(id, updateDTO);
         return Result.success("更新成功", userVO);
     }
 
-    @Operation(summary = "分页查询用户列表（含关键词搜索）")
+    @Operation(summary = "分页查询用户列表（管理员）")
     @GetMapping
     public Result<PageResult<UserVO>> getUsers(
             @RequestParam(defaultValue = "1") Integer current,
             @RequestParam(defaultValue = "10") Integer size,
             @RequestParam(required = false) String keyword) {
+        SecurityUtils.checkAdmin();
         PageResult<UserVO> pageResult = userService.getUsers(current, size, keyword);
         return Result.success(pageResult);
     }
 
-    @Operation(summary = "分页查询用户列表（兼容旧路径）")
+    @Operation(summary = "分页查询用户列表（兼容旧路径，管理员）")
     @GetMapping("/list")
     public Result<PageResult<UserVO>> getUsersList(
             @RequestParam(defaultValue = "1") Integer current,
             @RequestParam(defaultValue = "10") Integer size,
             @RequestParam(required = false) String keyword) {
-        return getUsers(current, size, keyword);
+        SecurityUtils.checkAdmin();
+        PageResult<UserVO> pageResult = userService.getUsers(current, size, keyword);
+        return Result.success(pageResult);
     }
 
-    @Operation(summary = "删除用户")
+    @Operation(summary = "删除用户（管理员）")
     @DeleteMapping("/{id}")
     public Result<Void> deleteUser(@PathVariable Long id) {
+        SecurityUtils.checkAdmin();
         userService.deleteUser(id);
         return Result.success("删除成功", null);
     }

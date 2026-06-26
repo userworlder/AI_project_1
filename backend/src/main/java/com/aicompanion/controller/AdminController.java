@@ -26,14 +26,13 @@ public class AdminController {
     @Operation(summary = "管理员登录")
     @PostMapping("/login")
     public Result<LoginVO> login(@Valid @RequestBody LoginDTO loginDTO) {
-        LoginVO loginVO = authService.login(loginDTO);
+        LoginVO loginVO = authService.adminLogin(loginDTO);
         return Result.success("登录成功", loginVO);
     }
 
     @Operation(summary = "获取管理员信息")
     @GetMapping("/info")
     public Result<UserVO> getInfo() {
-        // 从 SecurityContext 获取当前登录用户名
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated()) {
             String username = authentication.getName();

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.aicompanion.common.exception.BusinessException;
 import com.aicompanion.common.response.PageResult;
+import com.aicompanion.common.util.SecurityUtils;
 import com.aicompanion.mapper.ResumeMapper;
 import com.aicompanion.model.dto.ResumeDTO;
 import com.aicompanion.model.entity.Resume;
@@ -26,6 +27,11 @@ public class ResumeServiceImpl implements ResumeService {
 
     @Override
     public ResumeVO createResume(ResumeDTO resumeDTO) {
+        // 学生只能为自己创建简历评估
+        if (!SecurityUtils.isAdminOrTeacher()) {
+            resumeDTO.setUserId(SecurityUtils.getCurrentUserId());
+        }
+
         Resume resume = new Resume();
         BeanUtils.copyProperties(resumeDTO, resume);
         if (resume.getStatus() == null) {
@@ -45,6 +51,13 @@ public class ResumeServiceImpl implements ResumeService {
         if (resume == null) {
             throw new BusinessException("简历记录不存在");
         }
+        // 校验数据归属
+        SecurityUtils.checkAccess(resume.getUserId());
+        // 学生修改时不能篡改 userId
+        if (SecurityUtils.isStudent()) {
+            resumeDTO.setUserId(resume.getUserId());
+        }
+
         BeanUtils.copyProperties(resumeDTO, resume);
         resumeMapper.updateById(resume);
         return convertToVO(resume);
@@ -56,6 +69,8 @@ public class ResumeServiceImpl implements ResumeService {
         if (resume == null) {
             throw new BusinessException("简历记录不存在");
         }
+        // 校验数据归属
+        SecurityUtils.checkAccess(resume.getUserId());
         resumeMapper.deleteById(id);
     }
 
@@ -65,11 +80,18 @@ public class ResumeServiceImpl implements ResumeService {
         if (resume == null) {
             throw new BusinessException("简历记录不存在");
         }
+        // 校验数据归属：学生只能查看自己的简历
+        SecurityUtils.checkAccess(resume.getUserId());
         return convertToVO(resume);
     }
 
     @Override
     public List<ResumeVO> getResumesByUserId(Long userId) {
+        // 学生只能查看自己的简历列表
+        if (SecurityUtils.isStudent()) {
+            userId = SecurityUtils.getCurrentUserId();
+        }
+
         LambdaQueryWrapper<Resume> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Resume::getUserId, userId);
         wrapper.orderByDesc(Resume::getCreateTime);
@@ -85,6 +107,11 @@ public class ResumeServiceImpl implements ResumeService {
 
         Page<Resume> page = new Page<>(current, size);
         LambdaQueryWrapper<Resume> wrapper = new LambdaQueryWrapper<>();
+
+        // 学生只能查询自己的简历评估
+        if (SecurityUtils.isStudent()) {
+            userId = SecurityUtils.getCurrentUserId();
+        }
 
         if (userId != null) {
             wrapper.eq(Resume::getUserId, userId);

@@ -27,8 +27,16 @@ public class JwtUtil {
         return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateToken(String username) {
+    /**
+     * 生成 JWT Token（含角色和用户ID）
+     * @param username 用户名
+     * @param role 用户角色（admin/teacher/student）
+     * @param userId 用户ID
+     */
+    public String generateToken(String username, String role, Long userId) {
         Map<String, Object> claims = new HashMap<>();
+        claims.put("role", role);
+        claims.put("userId", userId);
         return createToken(claims, username);
     }
 
@@ -48,6 +56,16 @@ public class JwtUtil {
     public String getUsernameFromToken(String token) {
         Claims claims = getClaims(token);
         return claims.getSubject();
+    }
+
+    public String getRoleFromToken(String token) {
+        Claims claims = getClaims(token);
+        return claims.get("role", String.class);
+    }
+
+    public Long getUserIdFromToken(String token) {
+        Claims claims = getClaims(token);
+        return claims.get("userId", Long.class);
     }
 
     public boolean validateToken(String token) {

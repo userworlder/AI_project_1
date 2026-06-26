@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-@Tag(name = "仪表盘", description = "仪表盘统计相关接口")
+@Tag(name = "仪表盘", description = "仪表盘统计相关接口（仅管理员）")
 @RestController
 @RequestMapping("/api/dashboard")
 @RequiredArgsConstructor
