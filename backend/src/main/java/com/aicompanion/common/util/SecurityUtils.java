@@ -4,14 +4,16 @@ import com.aicompanion.common.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
 
 /**
  * 安全工具类 —— 从 SecurityContextHolder 获取当前登录用户信息
  */
 @Slf4j
-@Component
-public class SecurityUtils {
+public final class SecurityUtils {
+
+    private SecurityUtils() {
+        // 工具类禁止实例化
+    }
 
     /**
      * 获取当前登录用户的完整信息

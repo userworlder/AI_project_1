@@ -4,18 +4,35 @@ server:
 spring:
   application:
     name: ai-companion-backend
-  
+
+  config:
+    # 加载 application-secret.yml（存放 AI API 密钥等敏感配置，已加入 .gitignore）
+    # optional 前缀表示该文件不存在时不会报错
+    import: optional:application-secret.yml
+
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/ai_companion?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
     username: root
     password: 1111
-  
+
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8
 
+  # Spring AI 配置（连接 DeepSeek 等 OpenAI 兼容接口）
+  # API Key 等敏感配置统一放在 application-secret.yml 中
+  ai:
+    openai:
+      base-url: https://api.deepseek.com/v1
+      chat:
+        options:
+          model: deepseek-chat
+          temperature: 0.7
+
 mybatis-plus:
+  # XML Mapper 文件位置（resources/mapper/ 目录下的所有 XML）
+  mapper-locations: classpath:/mapper/**/*.xml
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl

@@ -7,6 +7,7 @@ import com.aicompanion.common.util.SecurityUtils;
 import com.aicompanion.model.dto.ChangePasswordDTO;
 import com.aicompanion.model.dto.RegisterDTO;
 import com.aicompanion.model.dto.UpdateUserDTO;
+import com.aicompanion.model.entity.User;
 import com.aicompanion.model.vo.UserVO;
 import com.aicompanion.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,6 +16,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Tag(name = "用户管理", description = "用户相关接口")
 @RestController
@@ -99,5 +102,15 @@ public class UserController {
         SecurityUtils.checkAdmin();
         userService.deleteUser(id);
         return Result.success("删除成功", null);
+    }
+
+    @Operation(summary = "动态搜索用户（管理员）", description = "支持按角色筛选、按用户名/昵称模糊搜索")
+    @GetMapping("/search")
+    public Result<List<User>> searchUsers(
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) String keyword) {
+        SecurityUtils.checkAdmin();
+        List<User> userList = userService.searchUsers(role, keyword);
+        return Result.success(userList);
     }
 }

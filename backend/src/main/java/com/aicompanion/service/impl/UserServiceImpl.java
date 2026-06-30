@@ -18,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -162,6 +163,15 @@ public class UserServiceImpl implements UserService {
         LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(User::getUsername, username);
         return userMapper.selectOne(wrapper);
+    }
+
+    @Override
+    public List<User> searchUsers(String role, String keyword) {
+        log.debug("动态搜索用户，role={}，keyword={}", role, keyword);
+        return userMapper.searchUsers(
+                Objects.toString(role, null),
+                Objects.toString(keyword, null)
+        );
     }
 
     private UserVO convertToVO(User user) {

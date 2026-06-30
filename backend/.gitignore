@@ -37,3 +37,16 @@ build/
 ### Log ###
 *.log
 logs/
+
+### Secrets & API Keys ###
+# AI API 密钥配置（如 ChatGPT、Claude 等第三方AI服务密钥）
+application-secret*.yml
+application-local*.yml
+*.env
+.env.*
+secrets/
+
+### Application temp ###
+*.tmp
+*.temp
+*.swp

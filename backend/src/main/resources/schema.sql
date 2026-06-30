@@ -104,6 +104,20 @@ CREATE TABLE IF NOT EXISTS `resume` (
     KEY `idx_create_time` (`create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='简历评估表';
 
+-- ========== AI 聊天历史表 ==========
+CREATE TABLE IF NOT EXISTS `ai_chat_history` (
+    `id` BIGINT AUTO_INCREMENT COMMENT '主键ID',
+    `session_id` VARCHAR(64) NOT NULL COMMENT '会话ID',
+    `role` VARCHAR(20) NOT NULL COMMENT '消息角色：user用户 / assistantAI',
+    `content` TEXT NOT NULL COMMENT '消息内容',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted` INT DEFAULT 0 COMMENT '逻辑删除：0未删 1已删',
+    PRIMARY KEY (`id`),
+    KEY `idx_session_id` (`session_id`),
+    KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI聊天历史记录表';
+
 -- ========== 初始数据 ==========
 INSERT INTO `user` (`username`, `password`, `nickname`, `email`, `status`) VALUES
 ('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH', '管理员', 'admin@aicompanion.com', 1),
