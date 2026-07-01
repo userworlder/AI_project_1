@@ -11,7 +11,7 @@
     -->
     <select id="searchUsers" resultType="com.aicompanion.model.entity.User">
         SELECT id, username, password, email, phone, nickname, avatar, role, status, create_time, update_time
-        FROM sys_user
+        FROM user
         <where>
             deleted = 0
             <if test="role != null and role != ''">

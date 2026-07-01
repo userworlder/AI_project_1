@@ -6,7 +6,7 @@ spring:
     name: ai-companion-backend
 
   config:
-    # 加载 application-secret.yml（存放 AI API 密钥等敏感配置，已加入 .gitignore）
+    # 加载 application-secret.yml（存放 AI API 密钥等敏感配置,已加入 .gitignore）
     # optional 前缀表示该文件不存在时不会报错
     import: optional:application-secret.yml
 
@@ -24,11 +24,17 @@ spring:
   # API Key 等敏感配置统一放在 application-secret.yml 中
   ai:
     openai:
-      base-url: https://api.deepseek.com/v1
+      base-url: https://api.deepseek.com
       chat:
         options:
           model: deepseek-chat
           temperature: 0.7
+
+  # WebClient 配置 - 优化 DNS 解析和超时设置
+  reactor:
+    netty:
+      connect-timeout: 30s
+      response-timeout: 60s
 
 mybatis-plus:
   # XML Mapper 文件位置（resources/mapper/ 目录下的所有 XML）

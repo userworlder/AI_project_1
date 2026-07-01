@@ -56,16 +56,21 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public String chat(String sessionId, String message) {
+        return chat(sessionId, message, null);
+    }
+
+    @Override
+    public String chat(String sessionId, String message, String systemPrompt) {
         log.info("AI聊天请求 sessionId={}, message={}", sessionId, message);
 
-        // 1. 查询该会话最近 HISTORY_SIZE 条历史记录（在保存本次消息之前查询，避免包含当前消息）
+        // 1. 查询该会话最近 HISTORY_SIZE 条历史记录
         List<AiChatHistory> historyList = queryRecentHistory(sessionId);
 
         // 2. 保存用户消息到数据库
         saveHistory(sessionId, "user", message);
 
-        // 3. 构建完整消息列表：系统提示词 + 历史对话 + 当前用户消息
-        List<Message> messageList = buildMessageList(historyList, message);
+        // 3. 构建完整消息列表
+        List<Message> messageList = buildMessageList(historyList, message, systemPrompt);
         log.debug("组装消息列表共 {} 条，其中系统提示词 1 条，历史 {} 条，当前消息 1 条",
                 messageList.size(), historyList.size());
 
@@ -86,6 +91,11 @@ public class ChatServiceImpl implements ChatService {
 
     @Override
     public Flux<String> chatStream(String sessionId, String message) {
+        return chatStream(sessionId, message, null);
+    }
+
+    @Override
+    public Flux<String> chatStream(String sessionId, String message, String systemPrompt) {
         log.info("AI流式聊天请求 sessionId={}, message={}", sessionId, message);
 
         // 1. 查询历史 + 保存用户消息
@@ -93,7 +103,7 @@ public class ChatServiceImpl implements ChatService {
         saveHistory(sessionId, "user", message);
 
         // 2. 构建消息列表
-        List<Message> messageList = buildMessageList(historyList, message);
+        List<Message> messageList = buildMessageList(historyList, message, systemPrompt);
 
         // 3. 流式调用 AI
         ChatClient chatClient = chatClientBuilder.build();
@@ -106,17 +116,13 @@ public class ChatServiceImpl implements ChatService {
         AtomicReference<StringBuilder> fullReply = new AtomicReference<>(new StringBuilder());
 
         return stream
-                .doOnNext(chunk -> {
-                    fullReply.get().append(chunk);
-                })
+                .doOnNext(chunk -> fullReply.get().append(chunk))
                 .doOnComplete(() -> {
                     String reply = fullReply.get().toString();
                     log.info("AI流式回复完成 sessionId={}, 长度={}", sessionId, reply.length());
                     saveHistory(sessionId, "assistant", reply);
                 })
-                .doOnError(e -> {
-                    log.error("AI流式回复异常 sessionId={}", sessionId, e);
-                });
+                .doOnError(e -> log.error("AI流式回复异常 sessionId={}", sessionId, e));
     }
 
     /**
@@ -143,12 +149,15 @@ public class ChatServiceImpl implements ChatService {
      * 构建发送给大模型的完整消息列表
      * <p>
      * 消息顺序为：SystemMessage → 历史 UserMessage/AssistantMessage → 当前 UserMessage
+     *
+     * @param systemPrompt 自定义系统提示词，为 null 时使用默认
      */
-    private List<Message> buildMessageList(List<AiChatHistory> historyList, String currentMessage) {
+    private List<Message> buildMessageList(List<AiChatHistory> historyList, String currentMessage, String systemPrompt) {
         List<Message> messages = new ArrayList<>();
 
-        // 第一条：系统提示词
-        messages.add(new SystemMessage(SYSTEM_PROMPT));
+        // 第一条：系统提示词（自定义优先，否则使用默认）
+        String prompt = (systemPrompt != null && !systemPrompt.isBlank()) ? systemPrompt : SYSTEM_PROMPT;
+        messages.add(new SystemMessage(prompt));
 
         // 中间：历史对话记录（按角色转为对应的 Message 类型）
         for (AiChatHistory record : historyList) {

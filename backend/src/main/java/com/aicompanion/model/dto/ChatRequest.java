@@ -20,4 +20,9 @@ public class ChatRequest {
      */
     @NotBlank(message = "消息不能为空")
     private String message;
+
+    /**
+     * 可选：自定义系统提示词，不为空时覆盖默认系统提示词
+     */
+    private String systemPrompt;
 }

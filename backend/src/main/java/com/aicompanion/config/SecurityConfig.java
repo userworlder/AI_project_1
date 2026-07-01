@@ -32,6 +32,8 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
         // 无状态会话（使用 JWT，不创建 Session）
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        // 自动保存 SecurityContext（解决 SSE 流式接口异步分发丢失认证上下文的问题）
+        .securityContext(context -> context.requireExplicitSave(false))
         .cors(cors -> cors.configurationSource(request -> {
             var corsConfiguration = new org.springframework.web.cors.CorsConfiguration();
             corsConfiguration.setAllowedOriginPatterns(java.util.List.of("*"));

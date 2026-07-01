@@ -35,7 +35,7 @@ struct Chat {
   }
 
   aboutToDisappear() {
-    // 离开页面时取消进行中的流式请求
+    // 离开页面时取消进行中的流式请求和打字机效果
     this.viewModel.cancelStream()
   }
 

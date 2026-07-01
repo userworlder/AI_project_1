@@ -1,6 +1,7 @@
 /**
  * 聊天消息数据模型
  */
+@Observed
 export class ChatMessage {
   role: string = 'user' // 'user' 或 'assistant'
   content: string = ''

@@ -40,6 +40,12 @@ export class ChatApiService {
   /**
    * 发送 SSE 流式聊天请求
    *
+   * 核心逻辑：
+   * 1. 发起 HTTP POST 请求（阻塞模式，等待完整响应）
+   * 2. 按 SSE 协议解析响应：事件之间用 \n\n 分隔，每个 data: 行为一个数据片段
+   * 3. 正确还原多行 data:（Spring SseEmitter 会将含 \n 的数据拆成多个 data: 行）
+   * 4. 一次性返回完整内容给 ViewModel
+   *
    * @param sessionId 会话 ID（UUID）
    * @param message   用户消息
    * @param callbacks 流式回调（onData / onComplete / onError）
@@ -66,58 +72,142 @@ export class ChatApiService {
       headers['Authorization'] = `Bearer ${token}`
     }
 
-    // SSE 分包缓冲区
-    let buffer = ''
-
-    // 注册数据接收事件 —— 处理 TCP 粘包/拆包
-    request.on('dataReceive', (data: ArrayBuffer) => {
-      const chunk: string = this.arrayBufferToString(data)
-      buffer += chunk
-      // 按 SSE 协议分割数据块：每个事件以 \n\n 结束
-      const parsed: SseParseResult = this.parseSseBuffer(buffer)
-      buffer = parsed.remainder
-      for (const text of parsed.events) {
-        callbacks.onData(text)
-      }
-    })
-
-    // 注册传输完成事件
-    request.on('dataEnd', () => {
-      // 处理缓冲区剩余内容（非空说明最后一段不完整，可能是 [DONE] 信号）
-      if (buffer.trim().length > 0) {
-        const remaining: SseParseResult = this.parseSseBuffer(buffer)
-        for (const text of remaining.events) {
-          callbacks.onData(text)
-        }
-      }
-      callbacks.onComplete()
-      this.destroy()
-    })
-
     const body = JSON.stringify({
       sessionId: sessionId,
       message: message
     })
 
     console.info(`[ChatApiService] SSE 请求开始: POST ${url}`)
+    console.info(`[ChatApiService] 请求体: ${body}`)
 
     try {
-      await request.request(url, {
+      const response = await request.request(url, {
         method: http.RequestMethod.POST,
         header: headers,
         extraData: body,
         connectTimeout: 30000,
-        readTimeout: 0 // 流式传输不设超时
+        readTimeout: 60000
       })
+
+      console.info(`[ChatApiService] 响应状态码: ${response.responseCode}`)
+      console.info(`[ChatApiService] 响应数据类型: ${typeof response.result}`)
+
+      if (response.responseCode === 200) {
+        // ============ 步骤1: 将响应体转为字符串 ============
+        const resultStr: string = this.responseToString(response.result)
+        console.info(`[ChatApiService] 响应原始内容(前300字符): ${resultStr.substring(0, 300)}`)
+
+        // ============ 步骤2: 按 SSE 协议解析事件 ============
+        // SSE 协议: 多个事件之间用 \n\n 分隔, 每个事件由 event:/data: 行组成
+        const fullContent: string = this.parseSseEvents(resultStr)
+
+        console.info(`[ChatApiService] 提取内容长度: ${fullContent.length}`)
+        console.info(`[ChatApiService] 提取内容(前200字符): ${fullContent.substring(0, 200)}`)
+
+        // ============ 步骤3: 返回内容 ============
+        callbacks.onData(fullContent)
+        console.info('[ChatApiService] 调用 onComplete')
+        callbacks.onComplete()
+      } else {
+        console.error(`[ChatApiService] 请求失败，状态码: ${response.responseCode}`)
+        callbacks.onError(new Error(`请求失败，状态码：${response.responseCode}`))
+      }
     } catch (err) {
-      // request 抛出的异常只处理非主动取消的情况
       const error = err as BusinessError
-      if (error.code !== 0) {
-        // code 0 表示主动调用 destroy 取消
-        callbacks.onError(new Error(error.message || 'SSE 请求异常'))
-        this.destroy()
+      console.error(`[ChatApiService] 请求异常: code=${error.code}, message=${error.message}`)
+      callbacks.onError(new Error(error.message || 'SSE 请求异常'))
+    } finally {
+      this.destroy()
+    }
+  }
+
+  /**
+   * 将响应结果转为字符串（兼容 string 和 ArrayBuffer）
+   */
+  private responseToString(result: Object): string {
+    if (typeof result === 'string') {
+      return result
+    }
+    if (result instanceof ArrayBuffer) {
+      return this.arrayBufferToString(result)
+    }
+    // 兜底
+    return String(result)
+  }
+
+  /**
+   * 正确解析 SSE 事件，保留多行 data: 中的换行符
+   *
+   * SSE 原始数据格式示例（来自 Spring SseEmitter）：
+   *   event:message
+   *   data:第一行内容
+   *   data:第二行内容
+   *   data:
+   *   data:空行后的内容
+   *
+   *   event:message
+   *   data:[DONE]
+   *
+   * 解析规则：
+   * - 按 \n\n 分割每条 SSE 事件
+   * - 每条事件内，收集所有 data: 行的数据
+   * - 同一事件内的多行 data: 用 \n 拼接（还原原始换行）
+   * - 不同事件的内容直接拼接（不额外加换行）
+   */
+  private parseSseEvents(raw: string): string {
+    if (!raw) return ''
+
+    // 按 \n\n 分割成独立事件
+    const eventBlocks: string[] = raw.split('\n\n')
+    let fullContent: string = ''
+
+    for (const eventBlock of eventBlocks) {
+      if (!eventBlock || !eventBlock.trim()) {
+        continue
+      }
+
+      const lines: string[] = eventBlock.trimEnd().split('\n')
+      const dataLines: string[] = []
+      let hasData: boolean = false
+
+      for (const line of lines) {
+        if (line.startsWith('data:')) {
+          const value: string = line.slice(5) // 保留原始内容（含空值）
+          const trimmedValue: string = value.trim()
+
+          // 过滤 [DONE] 终止信号
+          if (trimmedValue === '[DONE]') {
+            return fullContent // [DONE] 后面的内容忽略
+          }
+
+          // 尝试解析 JSON 格式（后端可能发 {"content":"..."}）
+          if (trimmedValue.startsWith('{')) {
+            try {
+              const parsed: Record<string, Object> = JSON.parse(trimmedValue)
+              if (parsed && parsed.content) {
+                dataLines.push(parsed.content as string)
+                hasData = true
+                continue
+              }
+            } catch (_) {
+              // JSON 解析失败，按纯文本处理
+            }
+          }
+
+          // 纯文本：保留原始值（空值也保留，表示空行）
+          dataLines.push(value)
+          hasData = true
+        }
+        // event: 行直接忽略，不做任何处理
+      }
+
+      // 同一事件内的多行 data: 用 \n 拼接
+      if (hasData && dataLines.length > 0) {
+        fullContent += dataLines.join('\n')
       }
     }
+
+    return fullContent
   }
 
   /**
@@ -146,10 +236,9 @@ export class ChatApiService {
   /**
    * SSE 协议缓冲区解析
    *
-   * 将原始数据按 SSE 协议分割提取 data: 前缀的内容块。
-   * SSE 数据格式：
-   *   data: {content}\n\n
-   *   data: [DONE]\n\n
+   * 支持两种数据格式：
+   * 1. 标准 SSE: data:内容\n\n
+   * 2. 纯文本片段（Spring SSE 分包可能导致 data: 和内容被拆到两次 dataReceive）
    *
    * TCP 分包可能导致一个事件被拆成两次 dataReceive，
    * 所以需要 buffer 机制，将不完整的尾部留给下一次解析。
@@ -175,6 +264,10 @@ export class ChatApiService {
       // 提取 data: 前缀后的内容（支持多行 data:）
       const lines: string[] = trimmed.split('\n')
       for (const line of lines) {
+        if (line.startsWith('event:')) {
+          // SSE 事件名称行，跳过
+          continue
+        }
         if (line.startsWith('data:')) {
           const data: string = line.slice(5).trim()
 
@@ -197,6 +290,34 @@ export class ChatApiService {
             }
           } else {
             events.push(data)
+          }
+        } else {
+          // 非 data: 开头的行 → 直接作为内容片段处理（应对分包错位）
+          const text: string = line.trim()
+          if (text && text !== '[DONE]') {
+            events.push(text)
+          }
+        }
+      }
+    }
+
+    // 如果前面按 \n\n 分割没提取到事件，尝试直接从 remainder 里提取内容
+    // 适用于 data: 和内容跨包的情况
+    if (events.length === 0 && remainder.length > 0) {
+      // 从 remainder 中查找 data: 或纯文本
+      for (const line of remainder.split('\n')) {
+        if (line.startsWith('event:')) {
+          continue
+        }
+        if (line.startsWith('data:')) {
+          const data = line.slice(5).trim()
+          if (data && data !== '[DONE]') {
+            events.push(data)
+          }
+        } else {
+          const text = line.trim()
+          if (text && text !== '[DONE]') {
+            events.push(text)
           }
         }
       }
