@@ -118,6 +118,61 @@ CREATE TABLE IF NOT EXISTS `ai_chat_history` (
     KEY `idx_create_time` (`create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI聊天历史记录表';
 
+-- ========== 技能树表 ==========
+CREATE TABLE IF NOT EXISTS `skill_tree` (
+    `id` BIGINT AUTO_INCREMENT COMMENT '主键ID',
+    `name` VARCHAR(100) NOT NULL COMMENT '技能名称',
+    `description` VARCHAR(500) DEFAULT NULL COMMENT '技能描述',
+    `category` VARCHAR(50) NOT NULL COMMENT '技能分类',
+    `level` INT DEFAULT 1 COMMENT '难度等级(1-5)',
+    `parent_id` BIGINT DEFAULT 0 COMMENT '父节点ID，根节点为0',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted` INT DEFAULT 0 COMMENT '逻辑删除',
+    PRIMARY KEY (`id`),
+    KEY `idx_category` (`category`),
+    KEY `idx_parent_id` (`parent_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='技能树表';
+
+-- ========== 用户技能关联表 ==========
+CREATE TABLE IF NOT EXISTS `user_skill` (
+    `id` BIGINT AUTO_INCREMENT COMMENT '主键ID',
+    `user_id` BIGINT NOT NULL COMMENT '用户ID',
+    `skill_id` BIGINT NOT NULL COMMENT '技能ID',
+    `score` INT DEFAULT 0 COMMENT '技能评分(0-100)',
+    `proficiency` VARCHAR(20) DEFAULT 'beginner' COMMENT '熟练度：beginner入门 intermediate中等 advanced熟练 expert精通',
+    `practice_count` INT DEFAULT 0 COMMENT '练习次数',
+    `last_practiced` DATETIME DEFAULT NULL COMMENT '最后练习时间',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted` INT DEFAULT 0 COMMENT '逻辑删除',
+    PRIMARY KEY (`id`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_skill_id` (`skill_id`),
+    UNIQUE KEY `uk_user_skill` (`user_id`, `skill_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户技能关联表';
+
+-- ========== 技能考核记录表 ==========
+CREATE TABLE IF NOT EXISTS `skill_assessment` (
+    `id` BIGINT AUTO_INCREMENT COMMENT '主键ID',
+    `user_id` BIGINT NOT NULL COMMENT '用户ID',
+    `session_id` VARCHAR(64) NOT NULL COMMENT '会话标识',
+    `skill_name` VARCHAR(128) NOT NULL COMMENT '考核技能名称',
+    `questions_json` TEXT COMMENT 'AI生成的题目JSON（含参考答案）',
+    `answers_json` TEXT COMMENT '用户提交的答案JSON',
+    `score` INT DEFAULT 0 COMMENT '总分(0-100)',
+    `evaluation` TEXT COMMENT 'AI总体评价',
+    `strengths` TEXT COMMENT 'AI识别的优点(JSON数组)',
+    `improvements` TEXT COMMENT '改进建议(JSON数组)',
+    `status` INT DEFAULT 0 COMMENT '状态：0-进行中 1-已完成',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    `deleted` INT DEFAULT 0 COMMENT '逻辑删除',
+    PRIMARY KEY (`id`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_session_id` (`session_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='技能考核记录表';
+
 -- ========== 初始数据 ==========
 INSERT INTO `user` (`username`, `password`, `nickname`, `email`, `status`) VALUES
 ('admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5EH', '管理员', 'admin@aicompanion.com', 1),
@@ -133,3 +188,18 @@ INSERT INTO `skill` (`name`, `category`, `level`, `description`) VALUES
 ('MySQL 数据库', '数据库', 2, 'MySQL 数据库基础、SQL 语句和性能优化'),
 ('Docker 容器', '运维部署', 3, 'Docker 容器化技术、Dockerfile 和容器编排')
 ON DUPLICATE KEY UPDATE `description` = VALUES(`description`);
+
+INSERT INTO `user_skill` (`user_id`, `skill_id`, `score`, `proficiency`, `practice_count`) VALUES
+(3, 1, 85, 'advanced', 12),
+(3, 2, 60, 'intermediate', 5),
+(3, 3, 45, 'intermediate', 3),
+(3, 4, 30, 'beginner', 2),
+(3, 5, 70, 'intermediate', 8)
+ON DUPLICATE KEY UPDATE `score` = VALUES(`score`);
+
+INSERT INTO `study_record` (`user_id`, `content`, `duration`, `type`, `status`) VALUES
+(3, '学习 JavaScript 基本语法', 60, '视频课程', 2),
+(3, '练习 Vue3 组合式 API', 45, '动手练习', 1),
+(3, '学习 MySQL 索引优化', 90, '视频课程', 2),
+(3, 'Spring Boot RESTful API 练习', 120, '项目实战', 1),
+(3, 'Python 基础数据结构复习', 30, '课后复习', 2);

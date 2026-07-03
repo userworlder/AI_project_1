@@ -1,35 +1,35 @@
 package com.aicompanion.service.impl;
 
+import com.aicompanion.common.util.AuthUser;
+import com.aicompanion.common.util.SecurityUtils;
 import com.aicompanion.mapper.AiChatHistoryMapper;
 import com.aicompanion.model.entity.AiChatHistory;
 import com.aicompanion.service.ChatService;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.messages.AssistantMessage;
-import org.springframework.ai.chat.messages.Message;
-import org.springframework.ai.chat.messages.SystemMessage;
-import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.stereotype.Service;
 
 import reactor.core.publisher.Flux;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * AI 聊天服务实现
  * 对接 DeepSeek（OpenAI 兼容接口），支持带上下文的同步多轮对话
+ *
+ * 知识点：
+ * 1. 使用 AiConfig 中预构建的 ChatClient Bean（已注册 Tools + MessageChatMemoryAdvisor）
+ * 2. MessageChatMemoryAdvisor 自动从 Redis ChatMemory 中读取/写入历史消息
+ * 3. 同时保留 MySQL 持久化，作为永久聊天记录存储
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ChatServiceImpl implements ChatService {
 
-    private final ChatClient.Builder chatClientBuilder;
+    private final ChatClient chatClient;
     private final AiChatHistoryMapper aiChatHistoryMapper;
 
     /** 每次携带的历史消息条数 */
@@ -63,27 +63,28 @@ public class ChatServiceImpl implements ChatService {
     public String chat(String sessionId, String message, String systemPrompt) {
         log.info("AI聊天请求 sessionId={}, message={}", sessionId, message);
 
-        // 1. 查询该会话最近 HISTORY_SIZE 条历史记录
-        List<AiChatHistory> historyList = queryRecentHistory(sessionId);
-
-        // 2. 保存用户消息到数据库
+        // 1. 保存用户消息到数据库（MySQL 永久记录）
         saveHistory(sessionId, "user", message);
 
-        // 3. 构建完整消息列表
-        List<Message> messageList = buildMessageList(historyList, message, systemPrompt);
-        log.debug("组装消息列表共 {} 条，其中系统提示词 1 条，历史 {} 条，当前消息 1 条",
-                messageList.size(), historyList.size());
+        // 2. 构建增强系统提示词（注入用户上下文，使工具能正确获取 userId）
+        String enhancedPrompt = buildEnhancedSystemPrompt(systemPrompt);
 
-        // 4. 调用 AI 获取回复（同步，带上下文）
-        ChatClient chatClient = chatClientBuilder.build();
+        // 3. 调用 AI（MessageChatMemoryAdvisor 自动从 Redis 读取历史上下文）
+        //    .system() 设置系统提示词
+        //    .user() 设置当前用户消息
+        //    .advisors() 指定会话 ID 和历史消息数量
         String reply = chatClient.prompt()
-                .messages(messageList)
+                .system(enhancedPrompt)
+                .user(message)
+                .advisors(a -> a
+                        .param(MessageChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY, sessionId)
+                        .param(MessageChatMemoryAdvisor.CHAT_MEMORY_RETRIEVE_SIZE_KEY, HISTORY_SIZE))
                 .call()
                 .content();
 
         log.info("AI聊天回复 sessionId={}, reply={}", sessionId, reply);
 
-        // 5. 保存 AI 回复到数据库
+        // 4. 保存 AI 回复到数据库
         saveHistory(sessionId, "assistant", reply);
 
         return reply;
@@ -98,17 +99,19 @@ public class ChatServiceImpl implements ChatService {
     public Flux<String> chatStream(String sessionId, String message, String systemPrompt) {
         log.info("AI流式聊天请求 sessionId={}, message={}", sessionId, message);
 
-        // 1. 查询历史 + 保存用户消息
-        List<AiChatHistory> historyList = queryRecentHistory(sessionId);
+        // 1. 保存用户消息到数据库
         saveHistory(sessionId, "user", message);
 
-        // 2. 构建消息列表
-        List<Message> messageList = buildMessageList(historyList, message, systemPrompt);
+        // 2. 构建增强系统提示词
+        String enhancedPrompt = buildEnhancedSystemPrompt(systemPrompt);
 
-        // 3. 流式调用 AI
-        ChatClient chatClient = chatClientBuilder.build();
+        // 3. 流式调用 AI（MessageChatMemoryAdvisor 自动处理 Redis 上下文）
         Flux<String> stream = chatClient.prompt()
-                .messages(messageList)
+                .system(enhancedPrompt)
+                .user(message)
+                .advisors(a -> a
+                        .param(MessageChatMemoryAdvisor.CHAT_MEMORY_CONVERSATION_ID_KEY, sessionId)
+                        .param(MessageChatMemoryAdvisor.CHAT_MEMORY_RETRIEVE_SIZE_KEY, HISTORY_SIZE))
                 .stream()
                 .content();
 
@@ -126,57 +129,32 @@ public class ChatServiceImpl implements ChatService {
     }
 
     /**
-     * 按 sessionId 查询最近 HISTORY_SIZE 条历史消息（按时间正序排列）
-     */
-    private List<AiChatHistory> queryRecentHistory(String sessionId) {
-        LambdaQueryWrapper<AiChatHistory> wrapper = Wrappers.lambdaQuery(AiChatHistory.class)
-                .eq(AiChatHistory::getSessionId, sessionId)
-                .orderByDesc(AiChatHistory::getCreateTime)
-                .last("LIMIT " + HISTORY_SIZE);
-
-        List<AiChatHistory> records = aiChatHistoryMapper.selectList(wrapper);
-
-        // 按时间正序返回（最早的在前），以便构建对话上下文
-        records.sort((a, b) -> {
-            if (a.getCreateTime() == null || b.getCreateTime() == null) return 0;
-            return a.getCreateTime().compareTo(b.getCreateTime());
-        });
-
-        return records;
-    }
-
-    /**
-     * 构建发送给大模型的完整消息列表
+     * 构建包含用户上下文的增强系统提示词
      * <p>
-     * 消息顺序为：SystemMessage → 历史 UserMessage/AssistantMessage → 当前 UserMessage
+     * 从 SecurityContext 获取当前登录用户的信息（用户ID、用户名），
+     * 追加到系统提示词尾部，使 AI 在调用需要 userId 参数的工具时能正确传参。
      *
-     * @param systemPrompt 自定义系统提示词，为 null 时使用默认
+     * @param customSystemPrompt 自定义系统提示词，为 null 时使用默认
+     * @return 包含用户上下文的增强系统提示词
      */
-    private List<Message> buildMessageList(List<AiChatHistory> historyList, String currentMessage, String systemPrompt) {
-        List<Message> messages = new ArrayList<>();
+    private String buildEnhancedSystemPrompt(String customSystemPrompt) {
+        String basePrompt = (customSystemPrompt != null && !customSystemPrompt.isBlank())
+                ? customSystemPrompt : SYSTEM_PROMPT;
 
-        // 第一条：系统提示词（自定义优先，否则使用默认）
-        String prompt = (systemPrompt != null && !systemPrompt.isBlank()) ? systemPrompt : SYSTEM_PROMPT;
-        messages.add(new SystemMessage(prompt));
-
-        // 中间：历史对话记录（按角色转为对应的 Message 类型）
-        for (AiChatHistory record : historyList) {
-            switch (record.getRole()) {
-                case "user":
-                    messages.add(new UserMessage(record.getContent()));
-                    break;
-                case "assistant":
-                    messages.add(new AssistantMessage(record.getContent()));
-                    break;
-                default:
-                    log.warn("未知消息角色: {}", record.getRole());
-            }
+        // 获取当前登录用户信息（来自 JWT 上下文）
+        AuthUser currentUser = SecurityUtils.getCurrentUser();
+        if (currentUser == null) {
+            log.debug("未获取到当前用户信息，使用原始系统提示词");
+            return basePrompt;
         }
 
-        // 最后一条：当前用户消息
-        messages.add(new UserMessage(currentMessage));
-
-        return messages;
+        // 在系统提示词末尾追加用户上下文，使 AI 在 Function Calling 时能正确传递 userId
+        return basePrompt + "\n\n" +
+                "===== 当前用户上下文（工具调用时请使用此用户ID）=====\n" +
+                "当前用户ID: " + currentUser.getUserId() + "\n" +
+                "当前用户: " + currentUser.getUsername() + "\n" +
+                "当需要查询技能、分析用户画像或查询学习记录时，请使用上述用户ID调用对应工具。\n" +
+                "===== 用户上下文结束 =====";
     }
 
     /**
