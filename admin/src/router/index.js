@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { getToken } from '@/utils/token'
 
 // ========== 路由表配置 ==========
 const routes = [
@@ -60,6 +61,15 @@ const routes = [
         }
       },
       {
+        path: '/course',
+        name: 'Course',
+        component: () => import('@/views/course/index.vue'),
+        meta: {
+          title: '课程管理',
+          requiresAuth: true
+        }
+      },
+      {
         path: '/record',
         name: 'Record',
         component: () => import('@/views/record/index.vue'),
@@ -107,10 +117,11 @@ const routes = [
     ]
   },
 
-  // ========== 404 兜底路由 - 通配符匹配所有未定义路径 ==========
+  // ========== 404 兜底路由 ==========
   {
     path: '/:pathMatch(.*)*',
-    redirect: '/dashboard',
+    name: 'NotFound',
+    component: () => import('@/views/error/NotFound.vue'),
     meta: {
       title: '页面未找到',
       requiresAuth: false
@@ -133,10 +144,8 @@ router.beforeEach((to, from, next) => {
   // 2. 判断目标路由是否需要鉴权
   const requiresAuth = to.meta.requiresAuth !== false
 
-  // 3. 获取登录状态（从 localStorage 读取，与 Pinia 保持同步）
-  // 注意：在路由守卫中不能直接使用 useUserStore()，因为 Pinia 需要在应用实例创建后才能使用
-  // 使用 localStorage 作为判断依据，Pinia 会在初始化时从 localStorage 恢复状态
-  const hasToken = !!localStorage.getItem('admin_token')
+  // 3. 获取登录状态（统一使用 token 工具函数）
+  const hasToken = !!getToken()
 
   // 4. 核心权限控制逻辑
   if (hasToken) {

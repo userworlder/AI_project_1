@@ -13,6 +13,13 @@ export class ResumeApi {
   }
 
   /**
+   * AI评估简历：发送到后端，由后端调用AI进行评估
+   */
+  static async evaluate(context: Context, data: CreateResumeRequest): Promise<ResumeItem> {
+    return HttpClient.post<ResumeItem>(context, '/api/resumes/evaluate', data)
+  }
+
+  /**
    * 获取用户的所有简历评估列表
    */
   static async getByUser(context: Context, userId: number): Promise<ResumeItem[]> {

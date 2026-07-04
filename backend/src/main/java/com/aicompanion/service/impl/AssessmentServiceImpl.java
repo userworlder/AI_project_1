@@ -4,13 +4,18 @@ import com.aicompanion.common.exception.BusinessException;
 import com.aicompanion.common.util.JsonUtil;
 import com.aicompanion.common.util.SecurityUtils;
 import com.aicompanion.mapper.SkillAssessmentMapper;
+import com.aicompanion.mapper.SkillMapper;
+import com.aicompanion.mapper.UserSkillMapper;
 import com.aicompanion.model.dto.AssessmentStartRequest;
 import com.aicompanion.model.dto.AssessmentSubmitRequest;
+import com.aicompanion.model.entity.Skill;
 import com.aicompanion.model.entity.SkillAssessment;
+import com.aicompanion.model.entity.UserSkill;
 import com.aicompanion.model.vo.AssessmentQuestionVO;
 import com.aicompanion.model.vo.AssessmentResultVO;
 import com.aicompanion.model.vo.AssessmentStartVO;
 import com.aicompanion.service.AssessmentService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +24,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +47,8 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     private final ChatClient.Builder chatClientBuilder;
     private final SkillAssessmentMapper skillAssessmentMapper;
+    private final UserSkillMapper userSkillMapper;
+    private final SkillMapper skillMapper;
     private final ObjectMapper objectMapper;
 
     /**
@@ -227,7 +235,54 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         log.info("考核完成: sessionId={}, score={}", sessionId, score);
 
-        // 7. 组装返回结果
+        // 7. 同步更新 user_skill 表
+        try {
+            // 根据技能名称查找技能
+            LambdaQueryWrapper<Skill> skillQuery = new LambdaQueryWrapper<>();
+            skillQuery.eq(Skill::getName, assessment.getSkillName());
+            Skill skill = skillMapper.selectOne(skillQuery);
+            if (skill != null) {
+                // 查找已有的 user_skill 记录
+                LambdaQueryWrapper<UserSkill> usQuery = new LambdaQueryWrapper<>();
+                usQuery.eq(UserSkill::getUserId, assessment.getUserId());
+                usQuery.eq(UserSkill::getSkillId, skill.getId());
+                UserSkill userSkill = userSkillMapper.selectOne(usQuery);
+
+                String proficiency = deriveProficiency(score);
+
+                if (userSkill != null) {
+                    // 更新：取最高分，增加练习次数
+                    if (score > userSkill.getScore()) {
+                        userSkill.setScore(score);
+                    }
+                    userSkill.setProficiency(proficiency);
+                    userSkill.setPracticeCount(userSkill.getPracticeCount() == null ? 1 : userSkill.getPracticeCount() + 1);
+                    userSkill.setLastPracticed(LocalDateTime.now());
+                    userSkillMapper.updateById(userSkill);
+                    log.info("更新 user_skill: userId={}, skillName={}, score={}, practiceCount={}",
+                            assessment.getUserId(), assessment.getSkillName(), score, userSkill.getPracticeCount());
+                } else {
+                    // 新建
+                    UserSkill newUs = new UserSkill();
+                    newUs.setUserId(assessment.getUserId());
+                    newUs.setSkillId(skill.getId());
+                    newUs.setScore(score);
+                    newUs.setProficiency(proficiency);
+                    newUs.setPracticeCount(1);
+                    newUs.setLastPracticed(LocalDateTime.now());
+                    userSkillMapper.insert(newUs);
+                    log.info("新增 user_skill: userId={}, skillName={}, score={}",
+                            assessment.getUserId(), assessment.getSkillName(), score);
+                }
+            } else {
+                log.warn("未找到技能「{}」，跳过 user_skill 更新", assessment.getSkillName());
+            }
+        } catch (Exception e) {
+            log.error("更新 user_skill 失败", e);
+            // 不阻断主流程，仅记录日志
+        }
+
+        // 8. 组装返回结果
         AssessmentResultVO result = new AssessmentResultVO();
         result.setScore(score);
         result.setEvaluation(assessment.getEvaluation());
@@ -245,5 +300,16 @@ public class AssessmentServiceImpl implements AssessmentService {
         result.setImprovements(improvements);
 
         return result;
+    }
+
+    /**
+     * 根据分数推导熟练度等级
+     */
+    private String deriveProficiency(Integer score) {
+        if (score == null) return "beginner";
+        if (score >= 85) return "expert";
+        if (score >= 70) return "advanced";
+        if (score >= 50) return "intermediate";
+        return "beginner";
     }
 }

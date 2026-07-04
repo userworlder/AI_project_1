@@ -7,7 +7,6 @@ import com.aicompanion.common.util.SecurityUtils;
 import com.aicompanion.model.dto.ChangePasswordDTO;
 import com.aicompanion.model.dto.RegisterDTO;
 import com.aicompanion.model.dto.UpdateUserDTO;
-import com.aicompanion.model.entity.User;
 import com.aicompanion.model.vo.UserVO;
 import com.aicompanion.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -106,11 +105,11 @@ public class UserController {
 
     @Operation(summary = "动态搜索用户（管理员）", description = "支持按角色筛选、按用户名/昵称模糊搜索")
     @GetMapping("/search")
-    public Result<List<User>> searchUsers(
+    public Result<List<UserVO>> searchUsers(
             @RequestParam(required = false) String role,
             @RequestParam(required = false) String keyword) {
         SecurityUtils.checkAdmin();
-        List<User> userList = userService.searchUsers(role, keyword);
+        List<UserVO> userList = userService.searchUsersVO(role, keyword);
         return Result.success(userList);
     }
 }

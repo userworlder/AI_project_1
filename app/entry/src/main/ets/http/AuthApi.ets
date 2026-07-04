@@ -3,7 +3,7 @@ import type { LoginRequest, RegisterRequest, RegisterBody, LoginResponse } from 
 
 export class AuthApi {
   static async login(context: Context, data: LoginRequest): Promise<LoginResponse> {
-    return HttpClient.post<LoginResponse>(context, '/api/auth/admin/login', data)
+    return HttpClient.post<LoginResponse>(context, '/api/auth/login', data)
   }
 
   static async register(context: Context, data: RegisterRequest): Promise<void> {

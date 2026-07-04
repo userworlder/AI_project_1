@@ -13,6 +13,9 @@
     "pages/ChangePassword",
     "pages/ResumeList",
     "pages/ResumeEditor",
-    "pages/ResumeResult"
+    "pages/ResumeResult",
+    "pages/CourseDetail",
+    "pages/QuizPage",
+    "pages/QuizResult"
   ]
 }

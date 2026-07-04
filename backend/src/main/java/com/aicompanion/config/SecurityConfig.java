@@ -65,6 +65,14 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/api/skills/**").hasAnyRole("TEACHER", "ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/skills/**").hasAnyRole("TEACHER", "ADMIN")
 
+                // 课程/章节/题目写入操作 —— 教师或管理员（排除 students 的提交答案）
+                .requestMatchers(HttpMethod.POST, "/api/courses").hasAnyRole("TEACHER", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/courses/*/sections").hasAnyRole("TEACHER", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/courses/*/sections/*/questions").hasAnyRole("TEACHER", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/courses/sections/*/questions").hasAnyRole("TEACHER", "ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/courses/**").hasAnyRole("TEACHER", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/courses/**").hasAnyRole("TEACHER", "ADMIN")
+
                 // 订单写入操作 —— 教师或管理员
                 .requestMatchers(HttpMethod.PUT, "/api/orders/**").hasAnyRole("TEACHER", "ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/orders/**").hasAnyRole("TEACHER", "ADMIN")

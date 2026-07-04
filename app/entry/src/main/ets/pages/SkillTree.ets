@@ -262,6 +262,24 @@ struct SkillTree {
         .maxLines(3)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
         .width('100%')
+
+      Row() {
+        Blank()
+        Text('查看课程 ›')
+          .fontSize(12)
+          .fontColor('#6366F1')
+          .fontWeight(FontWeight.Medium)
+          .padding({ left: 10, right: 10, top: 4, bottom: 4 })
+          .border({ width: 1, color: '#6366F1' })
+          .borderRadius(12)
+          .onClick(() => {
+            router.pushUrl({
+              url: 'pages/CourseDetail',
+              params: { skillId: skill.id }
+            })
+          })
+      }
+      .width('100%')
     }
     .width('100%')
     .padding(16)

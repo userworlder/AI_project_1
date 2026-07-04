@@ -28,6 +28,13 @@ public class ResumeController {
         return Result.success("创建成功", resumeVO);
     }
 
+    @Operation(summary = "AI评估简历", description = "调用AI分析简历内容，自动评估并保存结果")
+    @PostMapping("/evaluate")
+    public Result<ResumeVO> evaluateResume(@Valid @RequestBody ResumeDTO resumeDTO) {
+        ResumeVO resumeVO = resumeService.evaluateResume(resumeDTO);
+        return Result.success("评估完成", resumeVO);
+    }
+
     @Operation(summary = "更新简历评估记录")
     @PutMapping("/{id}")
     public Result<ResumeVO> updateResume(@PathVariable Long id,

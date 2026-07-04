@@ -2,6 +2,7 @@ package com.aicompanion.controller;
 
 import com.aicompanion.common.response.PageResult;
 import com.aicompanion.common.response.Result;
+import com.aicompanion.common.util.SecurityUtils;
 import com.aicompanion.model.dto.SkillTreeDTO;
 import com.aicompanion.model.vo.SkillTreeVO;
 import com.aicompanion.service.SkillTreeService;
@@ -25,16 +26,18 @@ public class SkillTreeController {
 
     private final SkillTreeService skillTreeService;
 
-    @Operation(summary = "新增技能节点")
+    @Operation(summary = "新增技能节点（教师/管理员）")
     @PostMapping
     public Result<SkillTreeVO> createSkill(@Valid @RequestBody SkillTreeDTO skillTreeDTO) {
+        SecurityUtils.checkAdminOrTeacher();
         SkillTreeVO skillTreeVO = skillTreeService.createSkill(skillTreeDTO);
         return Result.success("新增成功", skillTreeVO);
     }
 
-    @Operation(summary = "逻辑删除技能节点")
+    @Operation(summary = "逻辑删除技能节点（教师/管理员）")
     @DeleteMapping("/{id}")
     public Result<Void> deleteById(@PathVariable Long id) {
+        SecurityUtils.checkAdminOrTeacher();
         skillTreeService.deleteById(id);
         return Result.success("删除成功", null);
     }

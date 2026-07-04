@@ -43,8 +43,8 @@ export class HttpClient {
         method: http.RequestMethod[method],
         header: headers,
         extraData: data ? JSON.stringify(data) : undefined,
-        connectTimeout: 10000,
-        readTimeout: 10000
+        connectTimeout: 30000,
+        readTimeout: 60000
       })
 
       console.info(`[HttpClient] 响应状态码: ${response.responseCode}`)

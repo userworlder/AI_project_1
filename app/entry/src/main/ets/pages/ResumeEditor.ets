@@ -1,9 +1,7 @@
 import router from '@ohos.router'
 import { TokenUtil } from '../common/TokenUtil'
-import { ResumeDifyApi } from '../http/ResumeDifyApi'
 import { ResumeApi } from '../http/ResumeApi'
 import type { UserInfo } from '../model/User'
-import type { ResumeDifyResult } from '../model/Resume'
 
 @Entry
 @Component
@@ -33,42 +31,15 @@ struct ResumeEditor {
         return
       }
 
-      // 1. 调用 Dify 进行评估
-      const answer = await ResumeDifyApi.evaluate(this.resumeContent.trim())
-
-      // 2. 解析评估结果（Dify 返回的 answer 是 JSON 文本）
-      let evaluation = ''
-      let score = 0
-      let strengths = ''
-      let suggestions = ''
-      let summary = ''
-
-      try {
-        const parsed = JSON.parse(answer) as ResumeDifyResult
-        score = parsed.score || 0
-        strengths = this.parseArray(parsed.strengths)
-        suggestions = this.parseArray(parsed.suggestions)
-        summary = parsed.summary || ''
-        evaluation = answer // 保存完整 JSON
-      } catch (parseError) {
-        // 如果返回的不是合法 JSON，把整个文本当评估结果保存
-        evaluation = answer
-        summary = answer
-      }
-
-      // 3. 保存到后端
-      const saved = await ResumeApi.create(getContext(this), {
+      // 直接调用后端 AI 评估接口（后端调用 DeepSeek 分析简历）
+      const saved = await ResumeApi.evaluate(getContext(this), {
         userId: userInfo.id,
         title: this.resumeTitle.trim() || '未命名简历',
         content: this.resumeContent.trim(),
-        evaluation: evaluation,
-        score: score,
-        strengths: strengths,
-        suggestions: suggestions,
         status: 'completed'
       })
 
-      // 4. 跳转到结果页
+      // 跳转到结果页
       router.replaceUrl({
         url: 'pages/ResumeResult',
         params: { resumeId: saved.id }
@@ -80,6 +51,7 @@ struct ResumeEditor {
     }
   }
 
+  // 保留 parseArray 方法以备扩展
   parseArray(arr: string[]): string {
     if (!arr || arr.length === 0) return ''
     let result = ''

@@ -18,7 +18,8 @@ import {
   ArrowRight,
   Fold,
   Expand,
-  ArrowDown
+  ArrowDown,
+  Reading
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -30,6 +31,7 @@ const menuItems = [
   { name: '仪表盘', path: '/dashboard', icon: HomeFilled },
   { name: '用户管理', path: '/user', icon: UserFilled },
   { name: '技能树管理', path: '/skill', icon: Folder },
+  { name: '课程管理', path: '/course', icon: Reading },
   { name: '学习记录', path: '/record', icon: Notebook },
   { name: 'AI功能管理', path: '/ai', icon: MagicStick },
   { name: '订单管理', path: '/order', icon: ShoppingCart },

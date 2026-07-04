@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { User, Lock, Message, Phone } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import request from '@/utils/request'
+import { setToken, setUser } from '@/utils/token'
 
 const router = useRouter()
 
@@ -71,6 +72,27 @@ const handleRegister = async () => {
           phone: form.value.phone || undefined
         }
       })
+      // 注册成功，自动登录
+      try {
+        const loginRes = await request({
+          url: '/auth/admin/login',
+          method: 'post',
+          data: {
+            username: form.value.username,
+            password: form.value.password
+          }
+        })
+        if (loginRes.token) {
+          setToken(loginRes.token)
+          if (loginRes.user) setUser(loginRes.user)
+          ElMessage.success('注册成功，已自动登录！')
+          router.push('/dashboard')
+          return
+        }
+      } catch (loginErr) {
+        // 自动登录失败不阻塞，让用户手动登录
+        console.warn('注册后自动登录失败:', loginErr)
+      }
       ElMessage.success('注册成功，请登录！')
       router.push('/login')
     } catch (error) {

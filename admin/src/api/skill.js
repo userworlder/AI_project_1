@@ -32,7 +32,7 @@ const convertToTree = (list) => {
       name: skill.name,
       level: skill.level,
       description: skill.description,
-      createdAt: skill.createdAt,
+      createdAt: skill.createTime,
       category: skill.category
     }))
   }))

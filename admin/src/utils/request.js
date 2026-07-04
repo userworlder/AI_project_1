@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { getToken } from '@/utils/token'
+import { getToken, removeToken } from '@/utils/token'
 import { ElMessage } from 'element-plus'
 
 const service = axios.create({
@@ -47,10 +47,8 @@ service.interceptors.response.use(
 
     // 401 未授权 - Token 过期或无效
     if (error.response && error.response.status === 401) {
-      // 只清除 Token 但不强跳，让路由守卫和组件自行处理
-      import('@/utils/token').then(({ removeToken }) => {
-        removeToken()
-      })
+      removeToken()
+      window.location.href = '/login'
     }
 
     return Promise.reject(error)

@@ -174,6 +174,14 @@ public class UserServiceImpl implements UserService {
         );
     }
 
+    @Override
+    public List<UserVO> searchUsersVO(String role, String keyword) {
+        List<User> users = this.searchUsers(role, keyword);
+        return users.stream()
+                .map(this::convertToVO)
+                .collect(Collectors.toList());
+    }
+
     private UserVO convertToVO(User user) {
         UserVO vo = new UserVO();
         BeanUtils.copyProperties(user, vo);

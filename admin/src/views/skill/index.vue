@@ -1,11 +1,10 @@
 <script setup>import { ref, computed, onMounted } from 'vue';
-import { useUserStore } from '@/stores/user';
-import { mockSkillList } from '@/mock/skill';
-import { getSkillTree, getSkillTreeByCategory } from '@/api/skill';
-import { Plus, Edit, Delete, Search, Refresh, Filter } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { Plus, Edit, Delete, Search, Refresh, Filter } from '@element-plus/icons-vue';
+import { getSkillTree, getSkillTreeByCategory, createSkill, updateSkill, deleteSkill } from '@/api/skill';
+import { useUserStore } from '@/stores/user';
 // ========== 状态定义 ==========
-const allData = ref(mockSkillList);
+const allData = ref([]);
 const treeData = ref([]);
 const searchQuery = ref('');
 const filterCategory = ref('');
@@ -75,7 +74,6 @@ const list = computed(() => {
 const fetchTree = async () => {
  loading.value = true;
  try {
- // 模拟登录时跳过真实 API 请求
  const userStore = useUserStore()
  if (userStore.isMockLogin) {
  treeData.value = []
@@ -87,6 +85,8 @@ const fetchTree = async () => {
  else {
  treeData.value = await getSkillTree();
  }
+ // 同步 allData，供搜索/筛选使用
+ allData.value = treeData.value.flatMap(cat => cat.children || [])
  }
  catch (error) {
  console.error('获取技能树失败:', error);
@@ -128,21 +128,22 @@ const handleEdit = (row) => {
  form.value = { ...row };
  showModal.value = true;
 };
-const handleDelete = (row) => {
- ElMessageBox.confirm(`确定要删除技能「${row.name}」吗？`, '确认删除', {
+const handleDelete = async (row) => {
+ try {
+ await ElMessageBox.confirm(`确定要删除技能「${row.name}」吗？`, '确认删除', {
  confirmButtonText: '确定',
  cancelButtonText: '取消',
  type: 'warning'
- }).then(() => {
- const index = allData.value.findIndex(item => item.id === row.id);
- if (index > -1) {
- allData.value.splice(index, 1);
- fetchTree();
- ElMessage.success('删除成功');
- }
- }).catch(() => {
- ElMessage.info('已取消删除');
  });
+ await deleteSkill(row.id);
+ await fetchTree();
+ ElMessage.success('删除成功');
+ } catch (error) {
+ if (error !== 'cancel') {
+ console.error('删除技能失败:', error);
+ if (error?.message) ElMessage.error(error.message);
+ }
+ }
 };
 const resetForm = () => {
  form.value = {
@@ -155,51 +156,31 @@ const resetForm = () => {
  formRef.value?.resetFields();
 };
 const handleSubmit = async () => {
- if (!formRef.value)
- return;
- await formRef.value.validate((valid) => {
- if (!valid) {
- return false;
- }
+ if (!formRef.value) return;
+ await formRef.value.validate(async (valid) => {
+ if (!valid) return;
  submitLoading.value = true;
  try {
- if (editingId.value === null) {
- const newSkill = {
- id: Date.now(),
- name: form.value.name,
- category: form.value.category,
- level: form.value.level,
- description: form.value.description,
- createdAt: new Date().toLocaleString('zh-CN', {
- year: 'numeric',
- month: '2-digit',
- day: '2-digit',
- hour: '2-digit',
- minute: '2-digit',
- second: '2-digit'
- }).replace(/\//g, '-')
- };
- allData.value.unshift(newSkill);
- ElMessage.success('新增技能成功');
- }
- else {
- const index = allData.value.findIndex(item => item.id === editingId.value);
- if (index > -1) {
- allData.value[index] = {
- ...allData.value[index],
+ const submitData = {
  name: form.value.name,
  category: form.value.category,
  level: form.value.level,
  description: form.value.description
  };
+ if (editingId.value === null) {
+ await createSkill(submitData);
+ ElMessage.success('新增技能成功');
+ } else {
+ await updateSkill(editingId.value, submitData);
  ElMessage.success('编辑技能成功');
  }
- }
- fetchTree();
+ await fetchTree();
  showModal.value = false;
  resetForm();
- }
- finally {
+ } catch (error) {
+ console.error('保存技能失败:', error);
+ ElMessage.error(error?.message || '保存失败');
+ } finally {
  submitLoading.value = false;
  }
  });
